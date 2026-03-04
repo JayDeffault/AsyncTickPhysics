@@ -80,6 +80,8 @@ void ABaseVehicle::NativeAsyncTick(float DeltaTime)
 	EngineComponent->SetHandbrake(HandbrakeInput);
 	EngineComponent->Simulate(DeltaTime, Wheels, DriveForces, BrakeForces);
 
+	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
+
 	for (UWheelComponent* Wheel : Wheels)
 	{
 		if (!Wheel)
@@ -87,12 +89,13 @@ void ABaseVehicle::NativeAsyncTick(float DeltaTime)
 			continue;
 		}
 
+		const FTransform WheelWorldTransform = Wheel->GetRelativeTransform() * BodyWorldTransform;
 		Wheel->bDebugVehicle = bDebugVehicle;
 		const float DriveForce = DriveForces.FindRef(Wheel);
 		const float BrakeForce = BrakeForces.FindRef(Wheel);
 		const float SteerAngle = Wheel->bIsSteerWheel ? CurrentSteerAngle : 0.0f;
 
-		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle);
+		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle, WheelWorldTransform);
 		if (Wheel->bIsGrounded)
 		{
 			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Wheel->ContactPoint, WheelForces.TotalForce());
@@ -117,8 +120,9 @@ void ABaseVehicle::ApplyAntiRollBar()
 		}
 
 		const float RollDelta = Left->CompressionRatio - Right->CompressionRatio;
-		const FVector LeftForce = Left->GetUpVector() * (-RollDelta * AntiRollBarStiffness);
-		const FVector RightForce = Right->GetUpVector() * (RollDelta * AntiRollBarStiffness);
+		const FVector BodyUp = UAsyncTickFunctions::ATP_GetTransform(BodyMesh).GetUnitAxis(EAxis::Z);
+		const FVector LeftForce = BodyUp * (-RollDelta * AntiRollBarStiffness);
+		const FVector RightForce = BodyUp * (RollDelta * AntiRollBarStiffness);
 
 		if (Left->bIsGrounded)
 		{
@@ -165,7 +169,7 @@ void ABaseVehicle::DrawVehicleDebug(float DeltaTime)
 		{
 			DrawDebugPoint(World, Wheel->ContactPoint, 12.0f, FColor::Yellow, false, DeltaTime, 0);
 			DrawDebugLine(World, Wheel->ContactPoint, Wheel->ContactPoint + Wheel->ContactNormal * 35.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
-			DrawDebugLine(World, Wheel->GetComponentLocation(), Wheel->ContactPoint, FColor::Orange, false, DeltaTime, 0, 1.0f);
+			DrawDebugLine(World, Wheel->LastWheelWorldLocation, Wheel->ContactPoint, FColor::Orange, false, DeltaTime, 0, 1.0f);
 		}
 	}
 }

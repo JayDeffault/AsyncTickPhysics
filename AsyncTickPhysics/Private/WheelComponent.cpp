@@ -53,10 +53,14 @@ void UWheelComponent::EnsureCollisionMesh()
 	WheelCollisionMesh->SetRelativeRotation(FRotator::ZeroRotator);
 }
 
-void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh)
+void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh, const FTransform& WheelWorldTransform)
 {
 	bIsGrounded = false;
-	ContactPoint = GetComponentLocation() - GetUpVector() * SuspensionLowerLimit;
+	const FVector WheelLocation = WheelWorldTransform.GetLocation();
+	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
+	LastWheelWorldLocation = WheelLocation;
+
+	ContactPoint = WheelLocation - WheelUp * SuspensionLowerLimit;
 	ContactNormal = FVector::UpVector;
 	CompressionRatio = 0.0f;
 	CachedNormalLoad = 0.0f;
@@ -68,8 +72,8 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 		return;
 	}
 
-	const FVector OutStart = GetComponentLocation() + GetUpVector() * SuspensionUpperLimit;
-	const FVector OutEnd = GetComponentLocation() - GetUpVector() * SuspensionLowerLimit;
+	const FVector OutStart = WheelLocation + WheelUp * SuspensionUpperLimit;
+	const FVector OutEnd = WheelLocation - WheelUp * SuspensionLowerLimit;
 	LastSweepStart = OutStart;
 	LastSweepEnd = OutEnd;
 
@@ -105,7 +109,7 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 		WheelCollisionMesh,
 		OutStart,
 		OutEnd,
-		WheelCollisionMesh->GetComponentQuat(),
+		WheelWorldTransform.GetRotation(),
 		QueryParams);
 
 	if (!bHits)
@@ -141,7 +145,7 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 	ContactNormal = BestHit.ImpactNormal.GetSafeNormal();
 
 	const float RestLength = SuspensionUpperLimit + SuspensionLowerLimit;
-	const float SuspensionTravel = FVector::DotProduct(OutStart - ContactPoint, GetUpVector());
+	const float SuspensionTravel = FVector::DotProduct(OutStart - ContactPoint, WheelUp);
 	CurrentSuspensionLength = FMath::Max(0.0f, SuspensionTravel - WheelRadius);
 	CurrentSuspensionLength = FMath::Clamp(CurrentSuspensionLength, 0.0f, RestLength);
 
@@ -151,17 +155,17 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 	(void)DeltaTime;
 }
 
-FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent* BodyMesh, float DriveForce, float BrakeForce, float SteeringAngleDeg)
+FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent* BodyMesh, float DriveForce, float BrakeForce, float SteeringAngleDeg, const FTransform& WheelWorldTransform)
 {
 	FWheelForces Forces;
-	UpdateContact(DeltaTime, BodyMesh);
+	UpdateContact(DeltaTime, BodyMesh, WheelWorldTransform);
 
 	if (!bIsGrounded || !BodyMesh)
 	{
 		return Forces;
 	}
 
-	const FVector WheelUp = GetUpVector();
+	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
 	const float RestLength = SuspensionUpperLimit + SuspensionLowerLimit;
 	const float Compression = FMath::Clamp(RestLength - CurrentSuspensionLength, 0.0f, RestLength);
 	const FVector PointVel = UAsyncTickFunctions::ATP_GetLinearVelocityAtPoint(BodyMesh, ContactPoint);
@@ -174,7 +178,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	Forces.SuspensionForce = WheelUp * CachedNormalLoad;
 
 	const FQuat SteerRot = FQuat(WheelUp, FMath::DegreesToRadians(SteeringAngleDeg));
-	const FVector WheelForward = SteerRot.RotateVector(GetForwardVector()).GetSafeNormal();
+	const FVector WheelForward = SteerRot.RotateVector(WheelWorldTransform.GetUnitAxis(EAxis::X)).GetSafeNormal();
 	const FVector WheelRight = FVector::CrossProduct(WheelUp, WheelForward).GetSafeNormal();
 
 	const float VLat = FVector::DotProduct(PointVel, WheelRight);

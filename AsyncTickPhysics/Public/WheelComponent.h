@@ -95,6 +95,9 @@ public:
 	bool bDebugVehicle = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
+	FVector LastWheelWorldLocation = FVector::ZeroVector;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
 	FVector LastSweepStart = FVector::ZeroVector;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
@@ -103,14 +106,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
 	bool bLastSweepHadBlockingHit = false;
 
-	void UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh);
+	void UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh, const FTransform& WheelWorldTransform);
 
 	FWheelForces SimulateWheel(
 		float DeltaTime,
 		UPrimitiveComponent* BodyMesh,
 		float DriveForce,
 		float BrakeForce,
-		float SteeringAngleDeg);
+		float SteeringAngleDeg,
+		const FTransform& WheelWorldTransform);
 
 	float GetNormalLoad() const { return CachedNormalLoad; }
 
