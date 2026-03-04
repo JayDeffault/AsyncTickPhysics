@@ -168,16 +168,6 @@ void ABaseVehicle::DrawVehicleDebug(float DeltaTime)
 		DrawDebugLine(World, Wheel->LastSweepStart, Wheel->LastSweepEnd, SweepColor, false, DeltaTime, 0, 1.5f);
 		DrawDebugLine(World, Wheel->LastWheelWorldLocation, Wheel->LastSweepEnd, FColor::Purple, false, DeltaTime, 0, 1.0f);
 
-		const FString WheelDebugText = FString::Printf(
-			TEXT("%s | G:%d | Comp:%.2f | Len:%.1f | SlipL:%.2f | SlipA:%.2f"),
-			*Wheel->GetName(),
-			Wheel->bIsGrounded ? 1 : 0,
-			Wheel->CompressionRatio,
-			Wheel->CurrentSuspensionLength,
-			Wheel->SlipRatioLong,
-			Wheel->SlipAngleLat);
-		DrawDebugString(World, Wheel->LastWheelWorldLocation + FVector(0.0f, 0.0f, 25.0f), WheelDebugText, nullptr, FColor::White, DeltaTime, false);
-
 		if (Wheel->bIsGrounded)
 		{
 			DrawDebugPoint(World, Wheel->ContactPoint, 12.0f, FColor::Yellow, false, DeltaTime, 0);
