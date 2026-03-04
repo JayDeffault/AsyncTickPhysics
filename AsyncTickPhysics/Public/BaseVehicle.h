@@ -70,7 +70,7 @@ public:
 	float AntiRollBarStiffness = 10000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Debug")
-	bool bDebugVehicle = false;
+	bool bDebugVehicle = true;
 
 	UFUNCTION(BlueprintCallable, Category = "Vehicle|Input")
 	void SetThrottle(float Value);

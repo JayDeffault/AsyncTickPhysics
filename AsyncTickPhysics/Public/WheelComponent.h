@@ -106,6 +106,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
 	bool bLastSweepHadBlockingHit = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
+	FVector LastTotalForce = FVector::ZeroVector;
+
 	void UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh, const FTransform& WheelWorldTransform);
 
 	FWheelForces SimulateWheel(

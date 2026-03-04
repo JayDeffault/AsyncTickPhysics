@@ -173,6 +173,7 @@ void ABaseVehicle::DrawVehicleDebug(float DeltaTime)
 			DrawDebugPoint(World, Wheel->ContactPoint, 12.0f, FColor::Yellow, false, DeltaTime, 0);
 			DrawDebugLine(World, Wheel->ContactPoint, Wheel->ContactPoint + Wheel->ContactNormal * 35.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
 			DrawDebugLine(World, Wheel->LastWheelWorldLocation, Wheel->ContactPoint, FColor::Orange, false, DeltaTime, 0, 1.0f);
+			DrawDebugLine(World, Wheel->ContactPoint, Wheel->ContactPoint + Wheel->LastTotalForce * 0.001f, FColor::Blue, false, DeltaTime, 0, 1.5f);
 		}
 		else
 		{

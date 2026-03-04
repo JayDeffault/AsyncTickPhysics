@@ -3,6 +3,7 @@
 #include "AsyncTickFunctions.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 
 UWheelComponent::UWheelComponent()
@@ -44,6 +45,14 @@ void UWheelComponent::EnsureCollisionMesh()
 		WheelCollisionMesh->RegisterComponent();
 	}
 
+	if (!WheelCollisionMesh->GetStaticMesh())
+	{
+		if (UStaticMesh* DefaultWheelMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere")))
+		{
+			WheelCollisionMesh->SetStaticMesh(DefaultWheelMesh);
+		}
+	}
+
 	if (WheelCollisionMesh->GetAttachParent() != this)
 	{
 		WheelCollisionMesh->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -51,11 +60,14 @@ void UWheelComponent::EnsureCollisionMesh()
 
 	WheelCollisionMesh->SetRelativeLocation(FVector::ZeroVector);
 	WheelCollisionMesh->SetRelativeRotation(FRotator::ZeroRotator);
+	const float RadiusScale = FMath::Max(0.1f, WheelRadius / 50.0f);
+	WheelCollisionMesh->SetRelativeScale3D(FVector(RadiusScale, RadiusScale, RadiusScale));
 }
 
 void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh, const FTransform& WheelWorldTransform)
 {
 	bIsGrounded = false;
+	LastTotalForce = FVector::ZeroVector;
 	const FVector WheelLocation = WheelWorldTransform.GetLocation();
 	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
 	LastWheelWorldLocation = WheelLocation;
@@ -162,6 +174,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	if (!bIsGrounded || !BodyMesh)
 	{
+		LastTotalForce = FVector::ZeroVector;
 		return Forces;
 	}
 
@@ -202,6 +215,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	Forces.LateralForce = WheelRight * FLatScalar;
 	Forces.LongitudinalForce = WheelForward * FLongScalar;
+	LastTotalForce = Forces.TotalForce();
 
 	WheelAngularVelocity += (FLongScalar / FMath::Max(WheelRadius, 1.0f)) * DeltaTime;
 
