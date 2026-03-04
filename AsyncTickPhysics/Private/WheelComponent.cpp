@@ -74,7 +74,7 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 	LastSweepEnd = OutEnd;
 
 	TArray<FHitResult> SweepHits;
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(WheelSweep), false);
+	FComponentQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
 	if (BodyMesh)
 	{
