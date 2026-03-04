@@ -1,0 +1,233 @@
+#include "BaseVehicle.h"
+
+#include "AsyncTickFunctions.h"
+#include "Components/InputComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
+#include "WheelComponent.h"
+
+ABaseVehicle::ABaseVehicle()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
+	SetRootComponent(BodyMesh);
+	BodyMesh->SetSimulatePhysics(true);
+	BodyMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
+
+	EngineComponent = CreateDefaultSubobject<UEngineComponent>(TEXT("EngineComponent"));
+
+	UWheelComponent* FrontLeft = CreateDefaultSubobject<UWheelComponent>(TEXT("Wheel_FrontLeft"));
+	FrontLeft->SetupAttachment(BodyMesh);
+	FrontLeft->SetRelativeLocation(FVector(120.0f, -75.0f, -40.0f));
+	FrontLeft->bIsSteerWheel = true;
+	FrontLeft->bIsDrivenWheel = true;
+
+	UWheelComponent* FrontRight = CreateDefaultSubobject<UWheelComponent>(TEXT("Wheel_FrontRight"));
+	FrontRight->SetupAttachment(BodyMesh);
+	FrontRight->SetRelativeLocation(FVector(120.0f, 75.0f, -40.0f));
+	FrontRight->bIsSteerWheel = true;
+	FrontRight->bIsDrivenWheel = true;
+
+	UWheelComponent* RearLeft = CreateDefaultSubobject<UWheelComponent>(TEXT("Wheel_RearLeft"));
+	RearLeft->SetupAttachment(BodyMesh);
+	RearLeft->SetRelativeLocation(FVector(-120.0f, -75.0f, -40.0f));
+	RearLeft->bIsSteerWheel = false;
+	RearLeft->bIsDrivenWheel = true;
+
+	UWheelComponent* RearRight = CreateDefaultSubobject<UWheelComponent>(TEXT("Wheel_RearRight"));
+	RearRight->SetupAttachment(BodyMesh);
+	RearRight->SetRelativeLocation(FVector(-120.0f, 75.0f, -40.0f));
+	RearRight->bIsSteerWheel = false;
+	RearRight->bIsDrivenWheel = true;
+
+	Wheels = {FrontLeft, FrontRight, RearLeft, RearRight};
+}
+
+void ABaseVehicle::BeginPlay()
+{
+	Super::BeginPlay();
+	Health = MaxHealth;
+
+	if (BodyMesh)
+	{
+		BodyMesh->OnComponentHit.AddDynamic(this, &ABaseVehicle::OnBodyHit);
+	}
+}
+
+
+void ABaseVehicle::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	DrawVehicleDebug(DeltaTime);
+}
+
+void ABaseVehicle::NativeAsyncTick(float DeltaTime)
+{
+	Super::NativeAsyncTick(DeltaTime);
+
+	if (!BodyMesh || !EngineComponent)
+	{
+		return;
+	}
+
+	CurrentSteerAngle = FMath::FInterpTo(CurrentSteerAngle, SteeringInput * MaxSteerAngleDeg, DeltaTime, SteerSpeed);
+
+	TMap<UWheelComponent*, float> DriveForces;
+	TMap<UWheelComponent*, float> BrakeForces;
+	EngineComponent->SetThrottle(ThrottleInput);
+	EngineComponent->SetBrake(BrakeInput);
+	EngineComponent->SetHandbrake(HandbrakeInput);
+	EngineComponent->Simulate(DeltaTime, Wheels, DriveForces, BrakeForces);
+
+	for (UWheelComponent* Wheel : Wheels)
+	{
+		if (!Wheel)
+		{
+			continue;
+		}
+
+		Wheel->bDebugVehicle = bDebugVehicle;
+		const float DriveForce = DriveForces.FindRef(Wheel);
+		const float BrakeForce = BrakeForces.FindRef(Wheel);
+		const float SteerAngle = Wheel->bIsSteerWheel ? CurrentSteerAngle : 0.0f;
+
+		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle);
+		if (Wheel->bIsGrounded)
+		{
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Wheel->ContactPoint, WheelForces.TotalForce());
+		}
+	}
+
+	ApplyAntiRollBar();
+}
+
+void ABaseVehicle::ApplyAntiRollBar()
+{
+	if (!BodyMesh || Wheels.Num() < 4)
+	{
+		return;
+	}
+
+	auto ApplyPair = [this](UWheelComponent* Left, UWheelComponent* Right)
+	{
+		if (!Left || !Right)
+		{
+			return;
+		}
+
+		const float RollDelta = Left->CompressionRatio - Right->CompressionRatio;
+		const FVector LeftForce = Left->GetUpVector() * (-RollDelta * AntiRollBarStiffness);
+		const FVector RightForce = Right->GetUpVector() * (RollDelta * AntiRollBarStiffness);
+
+		if (Left->bIsGrounded)
+		{
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Left->ContactPoint, LeftForce);
+		}
+		if (Right->bIsGrounded)
+		{
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Right->ContactPoint, RightForce);
+		}
+	};
+
+	ApplyPair(Wheels[0], Wheels[1]);
+	ApplyPair(Wheels[2], Wheels[3]);
+
+	const FVector AngularDampingTorque = -UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh) * 15.0f;
+	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, AngularDampingTorque, false);
+}
+
+
+void ABaseVehicle::DrawVehicleDebug(float DeltaTime)
+{
+	if (!bDebugVehicle)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	for (const UWheelComponent* Wheel : Wheels)
+	{
+		if (!Wheel)
+		{
+			continue;
+		}
+
+		const FColor SweepColor = Wheel->bLastSweepHadBlockingHit ? FColor::Green : FColor::Red;
+		DrawDebugLine(World, Wheel->LastSweepStart, Wheel->LastSweepEnd, SweepColor, false, DeltaTime, 0, 1.5f);
+
+		if (Wheel->bIsGrounded)
+		{
+			DrawDebugSphere(World, Wheel->ContactPoint, 8.0f, 10, FColor::Yellow, false, DeltaTime);
+			DrawDebugLine(World, Wheel->ContactPoint, Wheel->ContactPoint + Wheel->ContactNormal * 35.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
+		}
+	}
+}
+
+void ABaseVehicle::SetThrottle(float Value)
+{
+	ThrottleInput = FMath::Clamp(Value, -1.0f, 1.0f);
+}
+
+void ABaseVehicle::SetBrake(float Value)
+{
+	BrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+}
+
+void ABaseVehicle::SetHandbrake(float Value)
+{
+	HandbrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+}
+
+void ABaseVehicle::SetSteering(float Value)
+{
+	SteeringInput = FMath::Clamp(Value, -1.0f, 1.0f);
+}
+
+void ABaseVehicle::ApplyCollisionDamage(float ImpactStrength)
+{
+	Health -= ImpactStrength * CollisionDamageMult;
+	if (Health <= 0.0f)
+	{
+		DestroyVehicle();
+	}
+}
+
+void ABaseVehicle::ApplyWeaponDamage(float Damage)
+{
+	Health -= Damage * WeaponDamageMult;
+	if (Health <= 0.0f)
+	{
+		DestroyVehicle();
+	}
+}
+
+void ABaseVehicle::DestroyVehicle()
+{
+	Destroy();
+}
+
+void ABaseVehicle::OnBodyHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	ApplyCollisionDamage(NormalImpulse.Size());
+}
+
+void ABaseVehicle::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (!PlayerInputComponent)
+	{
+		return;
+	}
+
+	PlayerInputComponent->BindAxis(TEXT("Throttle"), this, &ABaseVehicle::SetThrottle);
+	PlayerInputComponent->BindAxis(TEXT("Brake"), this, &ABaseVehicle::SetBrake);
+	PlayerInputComponent->BindAxis(TEXT("Steering"), this, &ABaseVehicle::SetSteering);
+	PlayerInputComponent->BindAxis(TEXT("Handbrake"), this, &ABaseVehicle::SetHandbrake);
+}
