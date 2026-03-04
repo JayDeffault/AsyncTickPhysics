@@ -163,8 +163,9 @@ void ABaseVehicle::DrawVehicleDebug(float DeltaTime)
 
 		if (Wheel->bIsGrounded)
 		{
-			DrawDebugSphere(World, Wheel->ContactPoint, 8.0f, 10, FColor::Yellow, false, DeltaTime);
+			DrawDebugPoint(World, Wheel->ContactPoint, 12.0f, FColor::Yellow, false, DeltaTime, 0);
 			DrawDebugLine(World, Wheel->ContactPoint, Wheel->ContactPoint + Wheel->ContactNormal * 35.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
+			DrawDebugLine(World, Wheel->GetComponentLocation(), Wheel->ContactPoint, FColor::Orange, false, DeltaTime, 0, 1.0f);
 		}
 	}
 }
