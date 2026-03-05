@@ -187,7 +187,6 @@ void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMe
 	CachedNormalLoad = 0.0f;
 	bLastSweepHadBlockingHit = false;
 
-	EnsureCollisionMesh();
 	if (!WheelCollisionMesh)
 	{
 		return;
