@@ -163,6 +163,8 @@ public:
 
 	float GetNormalLoad() const { return CachedNormalLoad; }
 
+	void UpdateVisualFromTick(float DeltaTime, float SteeringAngleDeg, const FTransform& BodyWorldTransform);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

@@ -61,6 +61,22 @@ void ABaseVehicle::BeginPlay()
 void ABaseVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (BodyMesh)
+	{
+		const FTransform BodyWorldTransform = BodyMesh->GetComponentTransform();
+		for (UWheelComponent* Wheel : Wheels)
+		{
+			if (!Wheel)
+			{
+				continue;
+			}
+
+			const float SteerAngle = Wheel->bIsSteerWheel ? CurrentSteerAngle : 0.0f;
+			Wheel->UpdateVisualFromTick(DeltaTime, SteerAngle, BodyWorldTransform);
+		}
+	}
+
 	DrawVehicleDebug(DeltaTime);
 }
 

@@ -114,6 +114,12 @@ void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg,
 	VisualWheelMesh->SetWorldLocationAndRotation(VisualWorldLocation, FinalRotation.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
 }
 
+void UWheelComponent::UpdateVisualFromTick(float DeltaTime, float SteeringAngleDeg, const FTransform& BodyWorldTransform)
+{
+	const FTransform WheelWorldTransform = GetRelativeTransform() * BodyWorldTransform;
+	UpdateVisualWheel(DeltaTime, SteeringAngleDeg, WheelWorldTransform);
+}
+
 void UWheelComponent::EnsureCollisionMesh()
 {
 	AActor* OwnerActor = GetOwner();
@@ -279,7 +285,6 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	{
 		CachedLateralForceScalar = FMath::FInterpTo(CachedLateralForceScalar, 0.0f, DeltaTime, LateralForceSmoothing);
 		LastTotalForce = FVector::ZeroVector;
-		UpdateVisualWheel(DeltaTime, SteeringAngleDeg, WheelWorldTransform);
 		return Forces;
 	}
 
@@ -360,7 +365,6 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	{
 		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, 0.0f, DeltaTime, 8.0f);
 	}
-	UpdateVisualWheel(DeltaTime, SteeringAngleDeg, WheelWorldTransform);
 
 	return Forces;
 }
