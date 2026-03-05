@@ -1,5 +1,6 @@
 #include "BaseVehicle.h"
 
+#include "AsyncTickFunctions.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
@@ -60,8 +61,13 @@ void ABaseVehicle::BeginPlay()
 void ABaseVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	SimulateVehicle(DeltaTime);
 	DrawVehicleDebug(DeltaTime);
+}
+
+void ABaseVehicle::NativeAsyncTick(float DeltaTime)
+{
+	Super::NativeAsyncTick(DeltaTime);
+	SimulateVehicle(DeltaTime);
 }
 
 void ABaseVehicle::SimulateVehicle(float DeltaTime)
@@ -80,7 +86,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 	EngineComponent->SetHandbrake(HandbrakeInput);
 	EngineComponent->Simulate(DeltaTime, Wheels, DriveForces, BrakeForces);
 
-	const FTransform BodyWorldTransform = BodyMesh->GetComponentTransform();
+	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
 
 	for (UWheelComponent* Wheel : Wheels)
 	{
@@ -98,7 +104,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle, WheelWorldTransform);
 		if (Wheel->bIsGrounded)
 		{
-			BodyMesh->AddForceAtLocation(WheelForces.TotalForce(), Wheel->ContactPoint);
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Wheel->ContactPoint, WheelForces.TotalForce());
 		}
 	}
 
@@ -120,25 +126,25 @@ void ABaseVehicle::ApplyAntiRollBar()
 		}
 
 		const float RollDelta = Left->CompressionRatio - Right->CompressionRatio;
-		const FVector BodyUp = BodyMesh->GetUpVector();
+		const FVector BodyUp = UAsyncTickFunctions::ATP_GetTransform(BodyMesh).GetUnitAxis(EAxis::Z);
 		const FVector LeftForce = BodyUp * (-RollDelta * AntiRollBarStiffness);
 		const FVector RightForce = BodyUp * (RollDelta * AntiRollBarStiffness);
 
 		if (Left->bIsGrounded)
 		{
-			BodyMesh->AddForceAtLocation(LeftForce, Left->ContactPoint);
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Left->ContactPoint, LeftForce);
 		}
 		if (Right->bIsGrounded)
 		{
-			BodyMesh->AddForceAtLocation(RightForce, Right->ContactPoint);
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Right->ContactPoint, RightForce);
 		}
 	};
 
 	ApplyPair(Wheels[0], Wheels[1]);
 	ApplyPair(Wheels[2], Wheels[3]);
 
-	const FVector AngularDampingTorque = -BodyMesh->GetPhysicsAngularVelocityInRadians() * 15.0f;
-	BodyMesh->AddTorqueInRadians(AngularDampingTorque);
+	const FVector AngularDampingTorque = -UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh) * 15.0f;
+	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, AngularDampingTorque, false);
 }
 
 

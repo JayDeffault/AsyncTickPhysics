@@ -1,5 +1,6 @@
 #include "WheelComponent.h"
 
+#include "AsyncTickFunctions.h"
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -9,8 +10,8 @@
 
 UWheelComponent::UWheelComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	CurrentSuspensionLength = SuspensionUpperLimit + SuspensionLowerLimit;
 }
 
@@ -25,43 +26,25 @@ void UWheelComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!bTickWheelInGameThread)
+	if (!bTickWheelInGameThread || !bDebugVehicle)
 	{
 		return;
 	}
 
-	UPrimitiveComponent* BodyMesh = nullptr;
-	if (AActor* OwnerActor = GetOwner())
-	{
-		BodyMesh = Cast<UPrimitiveComponent>(OwnerActor->GetRootComponent());
-	}
-
-	if (!BodyMesh)
+	UWorld* World = GetWorld();
+	if (!World)
 	{
 		return;
 	}
 
-	const FTransform BodyWorldTransform = BodyMesh->GetComponentTransform();
-	const FTransform WheelWorldTransform = GetRelativeTransform() * BodyWorldTransform;
-	UpdateContact(DeltaTime, BodyMesh, WheelWorldTransform);
+	const FColor SweepColor = bLastSweepHadBlockingHit ? FColor::Green : FColor::Red;
+	DrawDebugLine(World, LastSweepStart, LastSweepEnd, SweepColor, false, DeltaTime, 0, 1.5f);
+	DrawDebugPoint(World, LastWheelWorldLocation, 8.0f, FColor::White, false, DeltaTime, 0);
 
-	if (bDebugVehicle)
+	if (bIsGrounded)
 	{
-		UWorld* World = GetWorld();
-		if (!World)
-		{
-			return;
-		}
-
-		const FColor SweepColor = bLastSweepHadBlockingHit ? FColor::Green : FColor::Red;
-		DrawDebugLine(World, LastSweepStart, LastSweepEnd, SweepColor, false, DeltaTime, 0, 1.5f);
-		DrawDebugPoint(World, LastWheelWorldLocation, 8.0f, FColor::White, false, DeltaTime, 0);
-
-		if (bIsGrounded)
-		{
-			DrawDebugPoint(World, ContactPoint, 10.0f, FColor::Yellow, false, DeltaTime, 0);
-			DrawDebugLine(World, ContactPoint, ContactPoint + ContactNormal * 30.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
-		}
+		DrawDebugPoint(World, ContactPoint, 10.0f, FColor::Yellow, false, DeltaTime, 0);
+		DrawDebugLine(World, ContactPoint, ContactPoint + ContactNormal * 30.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
 	}
 }
 
@@ -235,7 +218,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
 	const float RestLength = SuspensionUpperLimit + SuspensionLowerLimit;
 	const float Compression = FMath::Clamp(RestLength - CurrentSuspensionLength, 0.0f, RestLength);
-	const FVector PointVel = BodyMesh->GetPhysicsLinearVelocityAtPoint(ContactPoint);
+	const FVector PointVel = UAsyncTickFunctions::ATP_GetLinearVelocityAtPoint(BodyMesh, ContactPoint);
 	const float VelocityAlongSuspension = FVector::DotProduct(PointVel, WheelUp);
 
 	const float SpringForce = SuspensionStiffness * Compression;

@@ -26,6 +26,7 @@ class ASYNCTICKPHYSICS_API ABaseVehicle : public AAsyncTickPawn
 public:
 	ABaseVehicle();
 
+	virtual void NativeAsyncTick(float DeltaTime) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 

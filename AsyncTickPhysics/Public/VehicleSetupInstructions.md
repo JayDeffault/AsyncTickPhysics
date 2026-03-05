@@ -35,5 +35,6 @@
 
 ## 3) Async Tick интеграция
 
-- `ABaseVehicle` наследуется от `AAsyncTickPawn`, но на текущем этапе выполняет симуляцию в обычном `Tick`.
+- `ABaseVehicle` наследуется от `AAsyncTickPawn`, но выполняет физическую симуляцию в `NativeAsyncTick`.
 - Применение сил к кузову выполняется через `UAsyncTickFunctions` (`ATP_AddForceAtPosition`, `ATP_AddTorque`).
+- Дебаг-отрисовка и визуальная часть выполняется в обычном `Tick`.

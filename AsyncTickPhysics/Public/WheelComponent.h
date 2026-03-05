@@ -100,7 +100,7 @@ public:
 	bool bDebugVehicle = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Debug")
-	bool bTickWheelInGameThread = true;
+	bool bTickWheelInGameThread = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
 	FVector LastWheelWorldLocation = FVector::ZeroVector;
