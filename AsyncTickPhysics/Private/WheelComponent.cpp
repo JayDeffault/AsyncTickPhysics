@@ -102,16 +102,14 @@ void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg,
 
 	VisualSpinAngleDeg = FMath::Fmod(VisualSpinAngleDeg + FMath::RadiansToDegrees(WheelAngularVelocity) * DeltaTime, 360.0f);
 
-	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
-	const FVector SuspensionOffset = -WheelUp * CurrentSuspensionLength;
-	const FVector VisualWorldLocation = WheelWorldTransform.GetLocation() + SuspensionOffset;
+	const float SteerDeg = bIsSteerWheel ? SteeringAngleDeg : 0.0f;
+	const FVector SpinAxisLocal = VisualWheelRotationAxis.GetSafeNormal();
+	const FQuat SteerLocalQuat(FVector::UpVector, FMath::DegreesToRadians(SteerDeg));
+	const FQuat SpinLocalQuat(SpinAxisLocal, FMath::DegreesToRadians(VisualSpinAngleDeg));
+	const FQuat VisualLocalQuat = (SteerLocalQuat * SpinLocalQuat).GetNormalized();
 
-	const FVector SpinAxis = VisualWheelRotationAxis.GetSafeNormal();
-	const FQuat SpinQuat = FQuat(SpinAxis, FMath::DegreesToRadians(VisualSpinAngleDeg));
-	const FQuat SteerQuat = FQuat(WheelUp, FMath::DegreesToRadians(bIsSteerWheel ? SteeringAngleDeg : 0.0f));
-	const FQuat FinalRotation = (SpinQuat * SteerQuat * WheelWorldTransform.GetRotation()).GetNormalized();
-
-	VisualWheelMesh->SetWorldLocationAndRotation(VisualWorldLocation, FinalRotation.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
+	VisualWheelMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -CurrentSuspensionLength));
+	VisualWheelMesh->SetRelativeRotation(VisualLocalQuat.Rotator());
 }
 
 void UWheelComponent::UpdateVisualFromTick(float DeltaTime, float SteeringAngleDeg, const FTransform& BodyWorldTransform)
@@ -332,6 +330,10 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold)
 	{
 		TargetFLatScalar *= RestLateralGripMultiplier;
+		if (FMath::Abs(DriveForce) < 1.0f && FMath::Abs(BrakeForce) < 1.0f)
+		{
+			TargetFLatScalar += -VLat * RestLateralDamping;
+		}
 	}
 	TargetFLatScalar = FMath::Clamp(TargetFLatScalar, -TireFriction * CachedNormalLoad, TireFriction * CachedNormalLoad);
 
@@ -347,13 +349,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	}
 
 	const float FrictionCircle = TireFriction * CachedNormalLoad;
-	const float Combined = FMath::Sqrt(FLatScalar * FLatScalar + FLongScalar * FLongScalar);
-	if (Combined > FrictionCircle && Combined > KINDA_SMALL_NUMBER)
-	{
-		const float Scale = FrictionCircle / Combined;
-		FLatScalar *= Scale;
-		FLongScalar *= Scale;
-	}
+	const float MaxLongFromCircle = FMath::Sqrt(FMath::Max(0.0f, FrictionCircle * FrictionCircle - FLatScalar * FLatScalar));
+	FLongScalar = FMath::Clamp(FLongScalar, -MaxLongFromCircle, MaxLongFromCircle);
+
+	const float MaxLatFromCircle = FMath::Sqrt(FMath::Max(0.0f, FrictionCircle * FrictionCircle - FLongScalar * FLongScalar));
+	FLatScalar = FMath::Clamp(FLatScalar, -MaxLatFromCircle, MaxLatFromCircle);
 
 	Forces.LateralForce = WheelRight * FLatScalar;
 	Forces.LongitudinalForce = WheelForward * FLongScalar;

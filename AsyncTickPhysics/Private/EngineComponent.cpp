@@ -68,7 +68,11 @@ void UEngineComponent::Simulate(float DeltaTime, const TArray<UWheelComponent*>&
 
 	const float GearRatio = GearRatios.IsValidIndex(CurrentGear) ? GearRatios[CurrentGear] : 0.0f;
 	const float NormalizedRPM = FMath::Clamp((RPM - IdleRPM) / FMath::Max(MaxRPM - IdleRPM, 1.0f), 0.0f, 1.0f);
-	const float EngineTorque = TorqueCurve.GetRichCurveConst() ? TorqueCurve.GetRichCurveConst()->Eval(NormalizedRPM) : 450.0f;
+	float EngineTorque = 450.0f;
+	if (const FRichCurve* RichCurve = TorqueCurve.GetRichCurveConst())
+	{
+		EngineTorque = RichCurve->GetNumKeys() > 0 ? RichCurve->Eval(NormalizedRPM) : 450.0f;
+	}
 	float WheelTorque = EngineTorque * ThrottleInput * GearRatio * FinalDriveRatio;
 
 	int32 NumDrivenWheels = 0;

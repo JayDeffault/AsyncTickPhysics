@@ -98,7 +98,10 @@ public:
 	float RestVelocityDamping = 3200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
-	float RestLateralGripMultiplier = 2.0f;
+	float RestLateralDamping = 2600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
+	float RestLateralGripMultiplier = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	bool bIsDrivenWheel = true;
