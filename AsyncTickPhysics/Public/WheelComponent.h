@@ -93,7 +93,10 @@ public:
 	FVector ContactNormal = FVector::UpVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Debug")
-	bool bDebugVehicle = false;
+	bool bDebugVehicle = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Debug")
+	bool bTickWheelInGameThread = true;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wheel|Debug")
 	FVector LastWheelWorldLocation = FVector::ZeroVector;
@@ -124,6 +127,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	void EnsureCollisionMesh();

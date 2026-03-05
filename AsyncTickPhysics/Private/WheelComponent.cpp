@@ -4,12 +4,14 @@
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 
 UWheelComponent::UWheelComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
 	CurrentSuspensionLength = SuspensionUpperLimit + SuspensionLowerLimit;
 }
 
@@ -17,6 +19,51 @@ void UWheelComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	EnsureCollisionMesh();
+}
+
+
+void UWheelComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (!bTickWheelInGameThread)
+	{
+		return;
+	}
+
+	UPrimitiveComponent* BodyMesh = nullptr;
+	if (AActor* OwnerActor = GetOwner())
+	{
+		BodyMesh = Cast<UPrimitiveComponent>(OwnerActor->GetRootComponent());
+	}
+
+	if (!BodyMesh)
+	{
+		return;
+	}
+
+	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
+	const FTransform WheelWorldTransform = GetRelativeTransform() * BodyWorldTransform;
+	UpdateContact(DeltaTime, BodyMesh, WheelWorldTransform);
+
+	if (bDebugVehicle)
+	{
+		UWorld* World = GetWorld();
+		if (!World)
+		{
+			return;
+		}
+
+		const FColor SweepColor = bLastSweepHadBlockingHit ? FColor::Green : FColor::Red;
+		DrawDebugLine(World, LastSweepStart, LastSweepEnd, SweepColor, false, DeltaTime, 0, 1.5f);
+		DrawDebugPoint(World, LastWheelWorldLocation, 8.0f, FColor::White, false, DeltaTime, 0);
+
+		if (bIsGrounded)
+		{
+			DrawDebugPoint(World, ContactPoint, 10.0f, FColor::Yellow, false, DeltaTime, 0);
+			DrawDebugLine(World, ContactPoint, ContactPoint + ContactNormal * 30.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
+		}
+	}
 }
 
 void UWheelComponent::EnsureCollisionMesh()
