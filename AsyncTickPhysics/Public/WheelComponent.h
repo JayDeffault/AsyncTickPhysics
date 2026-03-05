@@ -5,6 +5,7 @@
 #include "WheelComponent.generated.h"
 
 class UStaticMeshComponent;
+class UPrimitiveComponent;
 
 USTRUCT(BlueprintType)
 struct FWheelForces
