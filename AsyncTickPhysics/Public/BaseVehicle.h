@@ -106,6 +106,13 @@ private:
 	float SteeringInput = 0.0f;
 	float CurrentSteerAngle = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Async", meta = (AllowPrivateAccess = "true"))
+	bool bEnableGameThreadFallbackSimulation = true;
+
+	UPROPERTY(Transient)
+	bool bDidReceiveAsyncTick = false;
+
 	void ApplyAntiRollBar();
 	void DrawVehicleDebug(float DeltaTime);
+	void SimulateVehicle(float DeltaTime);
 };

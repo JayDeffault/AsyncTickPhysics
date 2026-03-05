@@ -9,6 +9,7 @@
 ABaseVehicle::ABaseVehicle()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	BodyMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BodyMesh"));
 	SetRootComponent(BodyMesh);
@@ -48,6 +49,7 @@ void ABaseVehicle::BeginPlay()
 {
 	Super::BeginPlay();
 	Health = MaxHealth;
+	SetActorTickEnabled(true);
 
 	if (BodyMesh)
 	{
@@ -59,13 +61,26 @@ void ABaseVehicle::BeginPlay()
 void ABaseVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bEnableGameThreadFallbackSimulation && !bDidReceiveAsyncTick)
+	{
+		SimulateVehicle(DeltaTime);
+	}
+
+	bDidReceiveAsyncTick = false;
 	DrawVehicleDebug(DeltaTime);
 }
 
 void ABaseVehicle::NativeAsyncTick(float DeltaTime)
 {
 	Super::NativeAsyncTick(DeltaTime);
+	bDidReceiveAsyncTick = true;
+	SimulateVehicle(DeltaTime);
+}
 
+
+void ABaseVehicle::SimulateVehicle(float DeltaTime)
+{
 	if (!BodyMesh || !EngineComponent)
 	{
 		return;
