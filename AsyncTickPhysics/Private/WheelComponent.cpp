@@ -87,6 +87,7 @@ void UWheelComponent::EnsureCollisionMesh()
 		WheelCollisionMesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 		WheelCollisionMesh->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
 		WheelCollisionMesh->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+		WheelCollisionMesh->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Ignore);
 		WheelCollisionMesh->SetSimulatePhysics(false);
 		WheelCollisionMesh->SetGenerateOverlapEvents(false);
 		WheelCollisionMesh->RegisterComponent();
@@ -109,6 +110,12 @@ void UWheelComponent::EnsureCollisionMesh()
 	WheelCollisionMesh->SetRelativeRotation(FRotator::ZeroRotator);
 	const float RadiusScale = FMath::Max(0.1f, WheelRadius / 50.0f);
 	WheelCollisionMesh->SetRelativeScale3D(FVector(RadiusScale, RadiusScale, RadiusScale));
+
+	if (UPrimitiveComponent* OwnerRootPrimitive = Cast<UPrimitiveComponent>(OwnerActor->GetRootComponent()))
+	{
+		WheelCollisionMesh->IgnoreComponentWhenMoving(OwnerRootPrimitive, true);
+		OwnerRootPrimitive->IgnoreComponentWhenMoving(WheelCollisionMesh, true);
+	}
 }
 
 void UWheelComponent::UpdateContact(float DeltaTime, UPrimitiveComponent* BodyMesh, const FTransform& WheelWorldTransform)
