@@ -61,23 +61,9 @@ void ABaseVehicle::BeginPlay()
 void ABaseVehicle::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (bEnableGameThreadFallbackSimulation && !bDidReceiveAsyncTick)
-	{
-		SimulateVehicle(DeltaTime);
-	}
-
-	bDidReceiveAsyncTick = false;
+	SimulateVehicle(DeltaTime);
 	DrawVehicleDebug(DeltaTime);
 }
-
-void ABaseVehicle::NativeAsyncTick(float DeltaTime)
-{
-	Super::NativeAsyncTick(DeltaTime);
-	bDidReceiveAsyncTick = true;
-	SimulateVehicle(DeltaTime);
-}
-
 
 void ABaseVehicle::SimulateVehicle(float DeltaTime)
 {
