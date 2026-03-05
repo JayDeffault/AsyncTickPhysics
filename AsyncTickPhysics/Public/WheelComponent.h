@@ -1,14 +1,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+#include "Engine/EngineBaseTypes.h"
 #include "Components/SceneComponent.h"
 #include "WheelComponent.generated.h"
 
 class UStaticMeshComponent;
 class UPrimitiveComponent;
+struct FActorComponentTickFunction;
 
 USTRUCT(BlueprintType)
-struct FWheelForces
+struct ASYNCTICKPHYSICS_API FWheelForces
 {
 	GENERATED_BODY()
 
