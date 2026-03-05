@@ -38,3 +38,13 @@
 - `ABaseVehicle` наследуется от `AAsyncTickPawn`, но выполняет физическую симуляцию в `NativeAsyncTick`.
 - Применение сил к кузову выполняется через `UAsyncTickFunctions` (`ATP_AddForceAtPosition`, `ATP_AddTorque`).
 - Дебаг-отрисовка и визуальная часть выполняется в обычном `Tick`.
+
+
+## 4) Визуальные меши колёс
+
+- У каждого `UWheelComponent` есть `VisualWheelMesh` (отдельный визуальный меш колеса).
+- `VisualWheelMesh` не участвует в коллизии (`NoCollision`) и используется только для визуала.
+- Во время симуляции колесо:
+  - вращается от `WheelAngularVelocity`,
+  - поворачивается по рулю для `bIsSteerWheel = true`.
+- При отсутствии назначенного меша автоматически подставляется `/Engine/BasicShapes/Cylinder.Cylinder`.

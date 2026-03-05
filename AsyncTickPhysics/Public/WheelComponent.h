@@ -42,6 +42,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Setup")
 	UStaticMeshComponent* WheelCollisionMesh;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
+	UStaticMeshComponent* VisualWheelMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
+	FVector VisualWheelRotationAxis = FVector(0.0f, 1.0f, 0.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Setup")
 	float WheelRadius = 34.0f;
 
@@ -147,7 +153,10 @@ protected:
 
 private:
 	void EnsureCollisionMesh();
+	void EnsureVisualMesh();
+	void UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg, const FTransform& WheelWorldTransform);
 
 	float CachedNormalLoad = 0.0f;
 	float CachedLateralForceScalar = 0.0f;
+	float VisualSpinAngleDeg = 0.0f;
 };

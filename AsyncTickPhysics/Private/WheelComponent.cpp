@@ -19,6 +19,7 @@ void UWheelComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	EnsureCollisionMesh();
+	EnsureVisualMesh();
 }
 
 
@@ -46,6 +47,71 @@ void UWheelComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		DrawDebugPoint(World, ContactPoint, 10.0f, FColor::Yellow, false, DeltaTime, 0);
 		DrawDebugLine(World, ContactPoint, ContactPoint + ContactNormal * 30.0f, FColor::Cyan, false, DeltaTime, 0, 1.0f);
 	}
+}
+
+
+void UWheelComponent::EnsureVisualMesh()
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
+	if (!VisualWheelMesh)
+	{
+		VisualWheelMesh = NewObject<UStaticMeshComponent>(OwnerActor, NAME_None, RF_Transactional);
+		if (!VisualWheelMesh)
+		{
+			return;
+		}
+
+		OwnerActor->AddInstanceComponent(VisualWheelMesh);
+		VisualWheelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		VisualWheelMesh->SetSimulatePhysics(false);
+		VisualWheelMesh->SetGenerateOverlapEvents(false);
+		VisualWheelMesh->RegisterComponent();
+	}
+
+	if (!VisualWheelMesh->GetStaticMesh())
+	{
+		if (UStaticMesh* DefaultWheelVisual = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder")))
+		{
+			VisualWheelMesh->SetStaticMesh(DefaultWheelVisual);
+		}
+	}
+
+	if (VisualWheelMesh->GetAttachParent() != this)
+	{
+		VisualWheelMesh->AttachToComponent(this, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	}
+
+	VisualWheelMesh->SetRelativeLocation(FVector::ZeroVector);
+	VisualWheelMesh->SetRelativeRotation(FRotator::ZeroRotator);
+	const float RadiusScale = FMath::Max(0.1f, WheelRadius / 50.0f);
+	VisualWheelMesh->SetRelativeScale3D(FVector(RadiusScale, RadiusScale, RadiusScale));
+}
+
+void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg, const FTransform& WheelWorldTransform)
+{
+	EnsureVisualMesh();
+	if (!VisualWheelMesh)
+	{
+		return;
+	}
+
+	VisualSpinAngleDeg = FMath::Fmod(VisualSpinAngleDeg + FMath::RadiansToDegrees(WheelAngularVelocity) * DeltaTime, 360.0f);
+
+	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
+	const FVector SuspensionOffset = -WheelUp * CurrentSuspensionLength;
+	const FVector VisualWorldLocation = WheelWorldTransform.GetLocation() + SuspensionOffset;
+
+	const FVector SpinAxis = VisualWheelRotationAxis.GetSafeNormal();
+	const FQuat SpinQuat = FQuat(SpinAxis, FMath::DegreesToRadians(VisualSpinAngleDeg));
+	const FQuat SteerQuat = FQuat(WheelUp, FMath::DegreesToRadians(bIsSteerWheel ? SteeringAngleDeg : 0.0f));
+	const FQuat FinalRotation = (SpinQuat * SteerQuat * WheelWorldTransform.GetRotation()).GetNormalized();
+
+	VisualWheelMesh->SetWorldLocationAndRotation(VisualWorldLocation, FinalRotation.Rotator(), false, nullptr, ETeleportType::TeleportPhysics);
 }
 
 void UWheelComponent::EnsureCollisionMesh()
@@ -213,6 +279,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	{
 		CachedLateralForceScalar = FMath::FInterpTo(CachedLateralForceScalar, 0.0f, DeltaTime, LateralForceSmoothing);
 		LastTotalForce = FVector::ZeroVector;
+		UpdateVisualWheel(DeltaTime, SteeringAngleDeg, WheelWorldTransform);
 		return Forces;
 	}
 
@@ -269,6 +336,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	LastTotalForce = Forces.TotalForce();
 
 	WheelAngularVelocity += (FLongScalar / FMath::Max(WheelRadius, 1.0f)) * DeltaTime;
+	UpdateVisualWheel(DeltaTime, SteeringAngleDeg, WheelWorldTransform);
 
 	return Forces;
 }
