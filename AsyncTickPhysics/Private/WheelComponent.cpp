@@ -1,6 +1,5 @@
 #include "WheelComponent.h"
 
-#include "AsyncTickFunctions.h"
 #include "CollisionQueryParams.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -42,7 +41,7 @@ void UWheelComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		return;
 	}
 
-	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
+	const FTransform BodyWorldTransform = BodyMesh->GetComponentTransform();
 	const FTransform WheelWorldTransform = GetRelativeTransform() * BodyWorldTransform;
 	UpdateContact(DeltaTime, BodyMesh, WheelWorldTransform);
 
@@ -229,7 +228,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const FVector WheelUp = WheelWorldTransform.GetUnitAxis(EAxis::Z);
 	const float RestLength = SuspensionUpperLimit + SuspensionLowerLimit;
 	const float Compression = FMath::Clamp(RestLength - CurrentSuspensionLength, 0.0f, RestLength);
-	const FVector PointVel = UAsyncTickFunctions::ATP_GetLinearVelocityAtPoint(BodyMesh, ContactPoint);
+	const FVector PointVel = BodyMesh->GetPhysicsLinearVelocityAtPoint(ContactPoint);
 	const float VelocityAlongSuspension = FVector::DotProduct(PointVel, WheelUp);
 
 	const float SpringForce = SuspensionStiffness * Compression;

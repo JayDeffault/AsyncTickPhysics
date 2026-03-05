@@ -1,6 +1,5 @@
 #include "BaseVehicle.h"
 
-#include "AsyncTickFunctions.h"
 #include "Components/InputComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
@@ -81,7 +80,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 	EngineComponent->SetHandbrake(HandbrakeInput);
 	EngineComponent->Simulate(DeltaTime, Wheels, DriveForces, BrakeForces);
 
-	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
+	const FTransform BodyWorldTransform = BodyMesh->GetComponentTransform();
 
 	for (UWheelComponent* Wheel : Wheels)
 	{
@@ -99,7 +98,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle, WheelWorldTransform);
 		if (Wheel->bIsGrounded)
 		{
-			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Wheel->ContactPoint, WheelForces.TotalForce());
+			BodyMesh->AddForceAtLocation(WheelForces.TotalForce(), Wheel->ContactPoint);
 		}
 	}
 
@@ -121,25 +120,25 @@ void ABaseVehicle::ApplyAntiRollBar()
 		}
 
 		const float RollDelta = Left->CompressionRatio - Right->CompressionRatio;
-		const FVector BodyUp = UAsyncTickFunctions::ATP_GetTransform(BodyMesh).GetUnitAxis(EAxis::Z);
+		const FVector BodyUp = BodyMesh->GetUpVector();
 		const FVector LeftForce = BodyUp * (-RollDelta * AntiRollBarStiffness);
 		const FVector RightForce = BodyUp * (RollDelta * AntiRollBarStiffness);
 
 		if (Left->bIsGrounded)
 		{
-			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Left->ContactPoint, LeftForce);
+			BodyMesh->AddForceAtLocation(LeftForce, Left->ContactPoint);
 		}
 		if (Right->bIsGrounded)
 		{
-			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Right->ContactPoint, RightForce);
+			BodyMesh->AddForceAtLocation(RightForce, Right->ContactPoint);
 		}
 	};
 
 	ApplyPair(Wheels[0], Wheels[1]);
 	ApplyPair(Wheels[2], Wheels[3]);
 
-	const FVector AngularDampingTorque = -UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh) * 15.0f;
-	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, AngularDampingTorque, false);
+	const FVector AngularDampingTorque = -BodyMesh->GetPhysicsAngularVelocityInRadians() * 15.0f;
+	BodyMesh->AddTorqueInRadians(AngularDampingTorque);
 }
 
 
