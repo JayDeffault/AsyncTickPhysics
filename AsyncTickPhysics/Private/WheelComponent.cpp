@@ -7,6 +7,7 @@
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include <cmath>
 
 UWheelComponent::UWheelComponent()
 {
@@ -335,11 +336,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	const float PeakSlipAngle = FMath::DegreesToRadians(FMath::Max(0.5f, SlipAnglePeakDeg));
 	const float NormSlipAngle = FMath::Clamp(CachedSlipAngle / PeakSlipAngle, -3.0f, 3.0f);
-	float TargetFLatScalar = -FMath::TanH(NormSlipAngle * CorneringStiffness) * MaxTireForce * LateralFrictionScale * LateralFade;
+	float TargetFLatScalar = -std::tanh(NormSlipAngle * CorneringStiffness) * MaxTireForce * LateralFrictionScale * LateralFade;
 
 	const float PeakSlipRatio = FMath::Max(0.02f, SlipRatioPeak);
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
-	float TireLongFromSlip = FMath::TanH(NormSlipRatio * LongitudinalStiffness) * MaxTireForce;
+	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce;
 	float FLongScalar = (DriveForce - BrakeForce) + TireLongFromSlip;
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold)
