@@ -176,14 +176,20 @@ void ABaseVehicle::ApplyAntiRollBar()
 		const float VLong = FVector::DotProduct(LinearVelocity, BodyForward);
 		const float VLat = FVector::DotProduct(LinearVelocity, BodyRight);
 
-		FVector StabilizationForce = (-BodyForward * VLong * ArcadeLongitudinalDamping) + (-BodyRight * VLat * ArcadeLateralDamping);
-		const float MaxStabilizationForce = 280000.0f;
+		const float HandbrakeGripLock = FMath::Clamp(HandbrakeInput, 0.0f, 1.0f);
+		const float LongDamping = FMath::Lerp(ArcadeLongitudinalDamping, ArcadeLongitudinalDamping * 3.2f, HandbrakeGripLock);
+		const float LatDamping = FMath::Lerp(ArcadeLateralDamping, ArcadeLateralDamping * 3.8f, HandbrakeGripLock);
+
+		FVector StabilizationForce = (-BodyForward * VLong * LongDamping) + (-BodyRight * VLat * LatDamping);
+		const float MaxStabilizationForce = FMath::Lerp(280000.0f, 700000.0f, HandbrakeGripLock);
 		StabilizationForce = StabilizationForce.GetClampedToMaxSize(MaxStabilizationForce);
 		UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyLocation, StabilizationForce);
 
 		const FVector YawOnlyAngularVelocity(0.0f, 0.0f, AngularVelocity.Z);
-		TotalAngularDamping += -YawOnlyAngularVelocity * ArcadeYawDamping;
-		TotalAngularDamping += -AngularVelocity * ArcadeAngularDamping;
+		const float YawDamping = FMath::Lerp(ArcadeYawDamping, ArcadeYawDamping * 6.0f, HandbrakeGripLock);
+		const float AngularDamping = FMath::Lerp(ArcadeAngularDamping, ArcadeAngularDamping * 3.0f, HandbrakeGripLock);
+		TotalAngularDamping += -YawOnlyAngularVelocity * YawDamping;
+		TotalAngularDamping += -AngularVelocity * AngularDamping;
 	}
 
 	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, TotalAngularDamping, false);

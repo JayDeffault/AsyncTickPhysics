@@ -89,8 +89,8 @@ void UWheelComponent::EnsureVisualMesh()
 
 	VisualWheelMesh->SetRelativeLocation(FVector::ZeroVector);
 	VisualWheelMesh->SetRelativeRotation(FRotator::ZeroRotator);
-	const float RadiusScale = FMath::Max(0.1f, WheelRadius / 50.0f);
-	VisualWheelMesh->SetRelativeScale3D(FVector(RadiusScale, RadiusScale, RadiusScale));
+	// Визуальный меш не масштабируем от параметров физики колеса (Radius/Width).
+	// Сохраняем масштаб из ассета/Blueprint.
 }
 
 void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg, const FTransform& WheelWorldTransform)
