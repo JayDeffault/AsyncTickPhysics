@@ -216,6 +216,8 @@ void ABaseVehicle::ApplyAntiRollBar()
 		}
 	}
 
+	const float YawSpinDamping = -AngularVelocity.Z * FMath::Abs(AngularVelocity.Z) * 4.5f;
+	TotalAngularDamping += FVector(0.0f, 0.0f, YawSpinDamping);
 	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, TotalAngularDamping, false);
 }
 
@@ -267,12 +269,12 @@ void ABaseVehicle::SetThrottle(float Value)
 
 void ABaseVehicle::SetBrake(float Value)
 {
-	BrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+	BrakeInput = (FMath::Abs(Value) < 0.05f) ? 0.0f : FMath::Clamp(Value, 0.0f, 1.0f);
 }
 
 void ABaseVehicle::SetHandbrake(float Value)
 {
-	HandbrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+	HandbrakeInput = (FMath::Abs(Value) < 0.05f) ? 0.0f : FMath::Clamp(Value, 0.0f, 1.0f);
 }
 
 void ABaseVehicle::SetSteering(float Value)

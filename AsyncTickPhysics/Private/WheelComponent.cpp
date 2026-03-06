@@ -109,7 +109,9 @@ void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg,
 	const FQuat SpinLocalQuat(SpinAxisLocal, FMath::DegreesToRadians(VisualSpinAngleDeg));
 	const FQuat VisualLocalQuat = (SteerLocalQuat * SpinLocalQuat).GetNormalized();
 
-	VisualWheelMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -CurrentSuspensionLength));
+	const float RestLength = SuspensionUpperLimit + SuspensionLowerLimit;
+	const float CompressionOffset = FMath::Clamp(RestLength - CurrentSuspensionLength, 0.0f, RestLength);
+	VisualWheelMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -CompressionOffset));
 	VisualWheelMesh->SetRelativeRotation(VisualLocalQuat.Rotator());
 }
 
@@ -490,8 +492,8 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float WheelCircumference = 2.0f * PI * FMath::Max(WheelRadius, 1.0f);
 	const float WheelTurnsPerSecond = VLong / WheelCircumference;
 	const float RollingOmega = WheelTurnsPerSecond * 2.0f * PI;
-	const float SlipBlend = FMath::Clamp(1.0f - FMath::Abs(CachedSlipRatio) * 0.35f, 0.25f, 1.0f);
-	const float VisualTargetOmega = FMath::Lerp(WheelAngularVelocity, RollingOmega, SlipBlend);
+	const float SlipBlend = FMath::Clamp(1.0f - FMath::Abs(CachedSlipRatio) * 0.55f, 0.0f, 1.0f);
+	const float VisualTargetOmega = FMath::Lerp(RollingOmega, WheelAngularVelocity, SlipBlend * 0.35f);
 	CachedVisualAngularVelocity = FMath::FInterpTo(CachedVisualAngularVelocity, VisualTargetOmega, DeltaTime, VisualGroundSpinInterp);
 
 	return Forces;

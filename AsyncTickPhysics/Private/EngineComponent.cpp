@@ -15,12 +15,12 @@ void UEngineComponent::SetThrottle(float Value)
 
 void UEngineComponent::SetBrake(float Value)
 {
-	BrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+	BrakeInput = (FMath::Abs(Value) < 0.05f) ? 0.0f : FMath::Clamp(Value, 0.0f, 1.0f);
 }
 
 void UEngineComponent::SetHandbrake(float Value)
 {
-	HandbrakeInput = FMath::Clamp(Value, 0.0f, 1.0f);
+	HandbrakeInput = (FMath::Abs(Value) < 0.05f) ? 0.0f : FMath::Clamp(Value, 0.0f, 1.0f);
 }
 
 void UEngineComponent::UpdateAutomaticGear()
