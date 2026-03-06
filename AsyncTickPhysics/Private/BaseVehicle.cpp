@@ -208,7 +208,7 @@ void ABaseVehicle::ApplyAntiRollBar()
 		if (bEnableStandstillLock)
 		{
 			const bool bNoDriverInput = FMath::Abs(ThrottleInput) < 0.05f && FMath::Abs(SteeringInput) < 0.05f && BrakeInput < 0.05f;
-			const bool bParkingMode = bNoDriverInput || HandbrakeInput > 0.2f;
+			const bool bParkingMode = bNoDriverInput || (HandbrakeInput > 0.2f && FMath::Abs(ThrottleInput) < 0.1f && FMath::Abs(SteeringInput) < 0.2f);
 			const float LinSpeed = LinearVelocity.Size();
 			const float AngSpeed = AngularVelocity.Size();
 

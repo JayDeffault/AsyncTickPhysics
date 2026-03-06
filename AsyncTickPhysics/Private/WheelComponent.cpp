@@ -311,7 +311,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	float VLat = FVector::DotProduct(PointVel, WheelRight);
 	float VLong = FVector::DotProduct(PointVel, WheelForward);
-	const bool bNoDriveOrBrakeInput = FMath::Abs(DriveForce) < 50.0f && FMath::Abs(BrakeForce) < 50.0f;
+	const bool bNoDriveOrBrakeInput = FMath::Abs(DriveForce) < 5.0f && FMath::Abs(BrakeForce) < 5.0f;
 
 	if (bUseRestStabilization && FMath::Abs(VLat) < RestSpeedThreshold && FMath::Abs(VLong) < RestSpeedThreshold)
 	{
@@ -443,7 +443,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float SpeedSq = VLong * VLong + VLat * VLat;
 		const float LockSpeedSq = StaticLockSpeedThreshold * StaticLockSpeedThreshold;
 		const bool bNearStatic = SpeedSq < LockSpeedSq;
-		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 50.0f) && (FMath::Abs(BrakeForce) < 50.0f) && (FMath::Abs(SteeringAngleDeg) < 1.0f);
+		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 5.0f) && (FMath::Abs(BrakeForce) < 5.0f) && (FMath::Abs(SteeringAngleDeg) < 1.5f) && (FMath::Abs(WheelAngularVelocity) < 5.0f);
 
 		if (bNearStatic && bNoInputForLock)
 		{

@@ -95,10 +95,10 @@ public:
 	bool bEnableStandstillLock = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
-	float StandstillLinearSpeedThreshold = 120.0f;
+	float StandstillLinearSpeedThreshold = 60.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
-	float StandstillAngularSpeedThreshold = 1.8f;
+	float StandstillAngularSpeedThreshold = 1.2f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
 	float StandstillLinearDamping = 2800.0f;
