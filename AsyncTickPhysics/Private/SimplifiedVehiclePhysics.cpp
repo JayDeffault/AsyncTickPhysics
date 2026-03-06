@@ -2,6 +2,8 @@
 
 #include "Algo/ForEach.h"
 
+#include <cmath>
+
 void VehiclePhysics::InitializeFromSetups(const TArray<FWheelSetup>& InSetups)
 {
 	WheelSetups = InSetups;
@@ -50,8 +52,8 @@ FTireForces TirePhysics::ComputeTireForces(const FWheelSetup& Setup, FWheelState
 	const float Mu = Setup.TireFriction * LoadScale;
 	const float FMax = Mu * State.NormalLoad;
 
-	const float SlipBasedFx = FMath::TanH(NormalizedSlipRatio * Setup.LongitudinalStiffness) * FMax;
-	const float SlipBasedFy = -FMath::TanH(NormalizedSlipAngle * Setup.CorneringStiffness) * FMax;
+	const float SlipBasedFx = std::tanh(NormalizedSlipRatio * Setup.LongitudinalStiffness) * FMax;
+	const float SlipBasedFy = -std::tanh(NormalizedSlipAngle * Setup.CorneringStiffness) * FMax;
 
 	float TargetFx = SlipBasedFx + EngineForce - BrakeForce;
 	float TargetFy = SlipBasedFy;
