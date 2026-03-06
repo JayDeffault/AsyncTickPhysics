@@ -56,6 +56,7 @@ struct FPowertrainSetup
 	float ShiftUpRPM = 6700.0f;
 	float ShiftDownRPM = 1900.0f;
 	float FinalDrive = 3.9f;
+	float ReverseGearRatio = -2.9f;
 	float EngineBrakeTorque = 140.0f;
 	float DifferentialBias = 0.25f;
 	float ThrottleResponse = 6.0f;
@@ -87,6 +88,9 @@ struct FVehicleHandling
 	float TractionAssist = 0.35f;
 	float ABSSensitivity = 0.30f;
 	float LowSpeedJitterThreshold = 40.0f; // cm/s
+	bool bEnableTractionControl = true;
+	bool bEnableABS = true;
+	bool bEnableStabilityAssist = true;
 };
 
 struct FWheelContact
@@ -136,6 +140,7 @@ public:
 	const TArray<FWheelState>& GetWheels() const { return WheelsState; }
 	float GetEngineRPM() const { return EngineRPM; }
 	int32 GetCurrentGear() const { return CurrentGear; }
+	bool IsReverseGear() const { return CurrentGear < 0; }
 
 private:
 	void UpdateSteering(float DeltaTime, const FVector& LinearVelocity);

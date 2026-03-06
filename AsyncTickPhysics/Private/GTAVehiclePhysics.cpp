@@ -54,16 +54,28 @@ void FVehicleSimulator::UpdatePowertrain(float DeltaTime)
 {
 	SmoothedThrottle = FMath::FInterpTo(SmoothedThrottle, Input.Throttle, DeltaTime, Powertrain.ThrottleResponse);
 
-	if (CurrentGear < Powertrain.GearRatios.Num() - 1 && EngineRPM > Powertrain.ShiftUpRPM)
+	const float ThrottleSign = FMath::Sign(Input.Throttle);
+	if (ThrottleSign < -0.1f)
 	{
-		++CurrentGear;
+		CurrentGear = -1;
 	}
-	if (CurrentGear > 1 && EngineRPM < Powertrain.ShiftDownRPM)
+	else if (ThrottleSign > 0.1f && CurrentGear <= 0)
 	{
-		--CurrentGear;
+		CurrentGear = 1;
 	}
 
-	CurrentGear = FMath::Clamp(CurrentGear, 1, FMath::Max(1, Powertrain.GearRatios.Num() - 1));
+	if (CurrentGear > 0)
+	{
+		if (CurrentGear < Powertrain.GearRatios.Num() - 1 && EngineRPM > Powertrain.ShiftUpRPM)
+		{
+			++CurrentGear;
+		}
+		if (CurrentGear > 1 && EngineRPM < Powertrain.ShiftDownRPM)
+		{
+			--CurrentGear;
+		}
+		CurrentGear = FMath::Clamp(CurrentGear, 1, FMath::Max(1, Powertrain.GearRatios.Num() - 1));
+	}
 }
 
 void FVehicleSimulator::UpdateSteering(float DeltaTime, const FVector& LinearVelocity)
@@ -142,7 +154,15 @@ void FVehicleSimulator::ComputeTireForces(float DeltaTime, IVehiclePhysicsInterf
 	}
 	DrivenCount = FMath::Max(DrivenCount, 1);
 
-	const float Ratio = Powertrain.GearRatios.IsValidIndex(CurrentGear) ? Powertrain.GearRatios[CurrentGear] : 1.0f;
+	float Ratio = 0.0f;
+	if (CurrentGear > 0)
+	{
+		Ratio = Powertrain.GearRatios.IsValidIndex(CurrentGear) ? Powertrain.GearRatios[CurrentGear] : 1.0f;
+	}
+	else if (CurrentGear < 0)
+	{
+		Ratio = Powertrain.ReverseGearRatio;
+	}
 	const float NormalizedRPM = FMath::Clamp((EngineRPM - Powertrain.IdleRPM) / FMath::Max(Powertrain.MaxRPM - Powertrain.IdleRPM, 1.0f), 0.0f, 1.0f);
 	const float EngineTorque = EvalEngineTorque(NormalizedRPM);
 	const float TotalDriveTorque = EngineTorque * SmoothedThrottle * Ratio * Powertrain.FinalDrive;
@@ -202,12 +222,12 @@ void FVehicleSimulator::ComputeTireForces(float DeltaTime, IVehiclePhysicsInterf
 		}
 
 		float DriveTorque = IsDrivenWheel(i) ? DriveTorquePerWheel : 0.0f;
-		if (FMath::Abs(Input.Throttle) > 0.1f && FMath::Abs(WS.SlipRatio) > 0.25f)
+		if (Handling.bEnableTractionControl && FMath::Abs(Input.Throttle) > 0.1f && FMath::Abs(WS.SlipRatio) > 0.25f)
 		{
 			DriveTorque *= FMath::Clamp(1.0f - Handling.TractionAssist, 0.4f, 1.0f);
 		}
 
-		if (Input.Brake > 0.1f && FMath::Abs(WS.SlipRatio) > 0.35f)
+		if (Handling.bEnableABS && Input.Brake > 0.1f && FMath::Abs(WS.SlipRatio) > 0.35f)
 		{
 			BrakeTorque *= FMath::Clamp(1.0f - Handling.ABSSensitivity, 0.5f, 1.0f);
 		}
@@ -309,7 +329,7 @@ void FVehicleSimulator::ApplyStabilityAssist(IVehiclePhysicsInterface& Body, con
 	const float VLong = FVector::DotProduct(LinearVelocity, Forward);
 	const float VLat = FVector::DotProduct(LinearVelocity, Right);
 
-	if (FMath::Abs(Input.Steering) < 0.2f)
+	if (Handling.bEnableStabilityAssist && FMath::Abs(Input.Steering) < 0.2f)
 	{
 		const FVector Assist = (-Right * VLat * 150.0f - Forward * VLong * 25.0f) * Handling.StabilityAssist;
 		Body.AddForceAtPoint(Assist, BodyTransform.GetLocation());
