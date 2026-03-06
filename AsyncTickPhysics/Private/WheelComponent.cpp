@@ -329,6 +329,10 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		FVector2D(LowSpeedLateralFadeStart, LowSpeedLateralFadeEnd),
 		FVector2D(0.0f, 1.0f),
 		AbsLongSpeed);
+	const float LongitudinalFade = FMath::GetMappedRangeValueClamped(
+		FVector2D(LowSpeedLateralFadeStart, LowSpeedLateralFadeEnd),
+		FVector2D(0.0f, 1.0f),
+		AbsLongSpeed);
 
 	const float LoadScale = FMath::Clamp(1.0f - LoadSensitivity + LoadSensitivity * FMath::Sqrt(FMath::Max(CachedNormalLoad, 0.0f) / 4000.0f), 0.6f, 1.4f);
 	const float Mu = TireFriction * LoadScale;
@@ -340,7 +344,15 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	const float PeakSlipRatio = FMath::Max(0.02f, SlipRatioPeak);
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
-	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce;
+	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce * LongitudinalFade;
+
+	if (bUseRestStabilization && AbsLongSpeed < RestSpeedThreshold && FMath::Abs(DriveForce) < 1.0f && FMath::Abs(BrakeForce) < 1.0f)
+	{
+		// На малой скорости без входа не даем продольной "пружине" шины раскачивать кузов назад/вперед.
+		TireLongFromSlip = 0.0f;
+		CachedSlipRatio = FMath::FInterpTo(CachedSlipRatio, 0.0f, DeltaTime, SlipRelaxationSpeed);
+	}
+
 	float FLongScalar = (DriveForce - BrakeForce) + TireLongFromSlip;
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold)
