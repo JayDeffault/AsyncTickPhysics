@@ -116,7 +116,8 @@ void UEngineComponent::Simulate(float DeltaTime, const TArray<UWheelComponent*>&
 			}
 		}
 
-		const float DriveForce = (AppliedWheelTorque * GripScale) / FMath::Max(Wheel->WheelRadius, 1.0f);
+		const float WheelRadiusMeters = FMath::Max(Wheel->WheelRadius * 0.01f, 0.05f);
+		const float DriveForce = (AppliedWheelTorque * GripScale) / WheelRadiusMeters;
 		float TotalBrake = BrakeInput * BrakeTorque;
 		if (HandbrakeInput > 0.0f && !IsWheelDriven(Wheel, Idx, Wheels.Num()))
 		{
@@ -124,7 +125,7 @@ void UEngineComponent::Simulate(float DeltaTime, const TArray<UWheelComponent*>&
 		}
 
 		OutDriveForce.Add(Wheel, DriveForce);
-		OutBrakeForce.Add(Wheel, TotalBrake / FMath::Max(Wheel->WheelRadius, 1.0f));
+		OutBrakeForce.Add(Wheel, TotalBrake / WheelRadiusMeters);
 
 		if (bDriven)
 		{

@@ -477,7 +477,8 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	if (bNoDriveOrBrakeInput)
 	{
-		const float TargetFreeRollingOmega = VLong / FMath::Max(WheelRadius, 1.0f);
+		const float WheelCircumferenceForSync = 2.0f * PI * FMath::Max(WheelRadius, 1.0f);
+		const float TargetFreeRollingOmega = (VLong / WheelCircumferenceForSync) * 2.0f * PI;
 		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, FreeRollingAngularSync);
 	}
 
@@ -486,7 +487,9 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, 0.0f, DeltaTime, 8.0f);
 	}
 
-	const float RollingOmega = VLong / FMath::Max(WheelRadius, 1.0f);
+	const float WheelCircumference = 2.0f * PI * FMath::Max(WheelRadius, 1.0f);
+	const float WheelTurnsPerSecond = VLong / WheelCircumference;
+	const float RollingOmega = WheelTurnsPerSecond * 2.0f * PI;
 	const float SlipBlend = FMath::Clamp(1.0f - FMath::Abs(CachedSlipRatio) * 0.35f, 0.25f, 1.0f);
 	const float VisualTargetOmega = FMath::Lerp(WheelAngularVelocity, RollingOmega, SlipBlend);
 	CachedVisualAngularVelocity = FMath::FInterpTo(CachedVisualAngularVelocity, VisualTargetOmega, DeltaTime, VisualGroundSpinInterp);
