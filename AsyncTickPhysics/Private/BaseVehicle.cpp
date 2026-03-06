@@ -162,8 +162,31 @@ void ABaseVehicle::ApplyAntiRollBar()
 	ApplyPair(Wheels[0], Wheels[1]);
 	ApplyPair(Wheels[2], Wheels[3]);
 
-	const FVector AngularDampingTorque = -UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh) * 15.0f;
-	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, AngularDampingTorque, false);
+	const FVector AngularVelocity = UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh);
+	FVector TotalAngularDamping = -AngularVelocity * 15.0f;
+
+	if (bUseArcadeStabilityAssist)
+	{
+		const FTransform BodyTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
+		const FVector BodyForward = BodyTransform.GetUnitAxis(EAxis::X);
+		const FVector BodyRight = BodyTransform.GetUnitAxis(EAxis::Y);
+		const FVector BodyLocation = BodyTransform.GetLocation();
+
+		const FVector LinearVelocity = UAsyncTickFunctions::ATP_GetLinearVelocity(BodyMesh);
+		const float VLong = FVector::DotProduct(LinearVelocity, BodyForward);
+		const float VLat = FVector::DotProduct(LinearVelocity, BodyRight);
+
+		FVector StabilizationForce = (-BodyForward * VLong * ArcadeLongitudinalDamping) + (-BodyRight * VLat * ArcadeLateralDamping);
+		const float MaxStabilizationForce = 280000.0f;
+		StabilizationForce = StabilizationForce.GetClampedToMaxSize(MaxStabilizationForce);
+		UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyLocation, StabilizationForce);
+
+		const FVector YawOnlyAngularVelocity(0.0f, 0.0f, AngularVelocity.Z);
+		TotalAngularDamping += -YawOnlyAngularVelocity * ArcadeYawDamping;
+		TotalAngularDamping += -AngularVelocity * ArcadeAngularDamping;
+	}
+
+	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, TotalAngularDamping, false);
 }
 
 

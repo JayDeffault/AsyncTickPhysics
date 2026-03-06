@@ -69,6 +69,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|AntiRoll")
 	float AntiRollBarStiffness = 10000.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability")
+	bool bUseArcadeStabilityAssist = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float ArcadeLongitudinalDamping = 95.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float ArcadeLateralDamping = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float ArcadeYawDamping = 65.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float ArcadeAngularDamping = 22.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Debug")
 	bool bDebugVehicle = true;
 
