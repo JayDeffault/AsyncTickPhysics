@@ -153,6 +153,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
 	float HandbrakeWheelStopInterp = 18.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
+	float VisualGroundSpinInterp = 14.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
+	float AirborneWheelSpinDamping = 0.8f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	bool bIsDrivenWheel = true;
 
@@ -232,4 +238,5 @@ private:
 	float CachedSlipAngle = 0.0f;
 	float CachedSlipRatio = 0.0f;
 	float VisualSpinAngleDeg = 0.0f;
+	float CachedVisualAngularVelocity = 0.0f;
 };

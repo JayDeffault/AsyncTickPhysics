@@ -101,7 +101,7 @@ void UWheelComponent::UpdateVisualWheel(float DeltaTime, float SteeringAngleDeg,
 		return;
 	}
 
-	VisualSpinAngleDeg = FMath::Fmod(VisualSpinAngleDeg + FMath::RadiansToDegrees(WheelAngularVelocity) * DeltaTime, 360.0f);
+	VisualSpinAngleDeg = FMath::Fmod(VisualSpinAngleDeg + FMath::RadiansToDegrees(CachedVisualAngularVelocity) * DeltaTime, 360.0f);
 
 	const float SteerDeg = bIsSteerWheel ? SteeringAngleDeg : 0.0f;
 	const FVector SpinAxisLocal = VisualWheelRotationAxis.GetSafeNormal();
@@ -281,6 +281,9 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	if (!bIsGrounded || !BodyMesh)
 	{
+		// В воздухе сохраняем инерцию вращения колеса с мягким затуханием.
+		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, 0.0f, DeltaTime, AirborneWheelSpinDamping);
+		CachedVisualAngularVelocity = WheelAngularVelocity;
 		CachedLateralForceScalar = FMath::FInterpTo(CachedLateralForceScalar, 0.0f, DeltaTime, LateralForceSmoothing);
 		LastTotalForce = FVector::ZeroVector;
 		return Forces;
@@ -298,9 +301,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	Forces.SuspensionForce = WheelUp * CachedNormalLoad;
 
-	const FQuat SteerRot = FQuat(WheelUp, FMath::DegreesToRadians(SteeringAngleDeg));
-	const FVector WheelForward = SteerRot.RotateVector(WheelWorldTransform.GetUnitAxis(EAxis::X)).GetSafeNormal();
-	const FVector WheelRight = FVector::CrossProduct(WheelUp, WheelForward).GetSafeNormal();
+	const FVector TireUp = ContactNormal.GetSafeNormal(WheelUp);
+	const FQuat SteerRot = FQuat(TireUp, FMath::DegreesToRadians(SteeringAngleDeg));
+	FVector WheelForward = SteerRot.RotateVector(WheelWorldTransform.GetUnitAxis(EAxis::X));
+	WheelForward = FVector::VectorPlaneProject(WheelForward, TireUp).GetSafeNormal();
+	const FVector WheelRight = FVector::CrossProduct(TireUp, WheelForward).GetSafeNormal();
 
 	float VLat = FVector::DotProduct(PointVel, WheelRight);
 	float VLong = FVector::DotProduct(PointVel, WheelForward);
@@ -480,6 +485,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	{
 		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, 0.0f, DeltaTime, 8.0f);
 	}
+
+	const float RollingOmega = VLong / FMath::Max(WheelRadius, 1.0f);
+	const float SlipBlend = FMath::Clamp(1.0f - FMath::Abs(CachedSlipRatio) * 0.35f, 0.25f, 1.0f);
+	const float VisualTargetOmega = FMath::Lerp(WheelAngularVelocity, RollingOmega, SlipBlend);
+	CachedVisualAngularVelocity = FMath::FInterpTo(CachedVisualAngularVelocity, VisualTargetOmega, DeltaTime, VisualGroundSpinInterp);
 
 	return Forces;
 }
