@@ -311,7 +311,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	float VLat = FVector::DotProduct(PointVel, WheelRight);
 	float VLong = FVector::DotProduct(PointVel, WheelForward);
-	const bool bNoDriveOrBrakeInput = FMath::Abs(DriveForce) < 1.0f && FMath::Abs(BrakeForce) < 1.0f;
+	const bool bNoDriveOrBrakeInput = FMath::Abs(DriveForce) < 50.0f && FMath::Abs(BrakeForce) < 50.0f;
 
 	if (bUseRestStabilization && FMath::Abs(VLat) < RestSpeedThreshold && FMath::Abs(VLong) < RestSpeedThreshold)
 	{
@@ -357,6 +357,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	if (bNoDriveOrBrakeInput)
 	{
 		// Без входа от водителя не используем продольную slip-тягу: только сопротивление/демпфирование.
+		// Порог повышен, чтобы после полной остановки машина могла снова тронуться по throttle.
 		TireLongFromSlip = 0.0f;
 		// И отключаем нелинейную боковую "тягу" от кэшированного slip, оставляя только демпфирование боковой скорости.
 		TargetFLatScalar = 0.0f;
@@ -442,7 +443,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float SpeedSq = VLong * VLong + VLat * VLat;
 		const float LockSpeedSq = StaticLockSpeedThreshold * StaticLockSpeedThreshold;
 		const bool bNearStatic = SpeedSq < LockSpeedSq;
-		const bool bNoInputForLock = bNoDriveOrBrakeInput;
+		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 50.0f) && (FMath::Abs(BrakeForce) < 50.0f) && (FMath::Abs(SteeringAngleDeg) < 1.0f);
 
 		if (bNearStatic && bNoInputForLock)
 		{
