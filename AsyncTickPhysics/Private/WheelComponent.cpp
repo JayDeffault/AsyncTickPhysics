@@ -477,11 +477,17 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	WheelAngularVelocity += (FLongScalar / FMath::Max(WheelRadius, 1.0f)) * DeltaTime;
 
+	const float WheelCircumferenceForSync = 2.0f * PI * FMath::Max(WheelRadius, 1.0f);
+	const float TargetFreeRollingOmega = (VLong / WheelCircumferenceForSync) * 2.0f * PI;
+
 	if (bNoDriveOrBrakeInput)
 	{
-		const float WheelCircumferenceForSync = 2.0f * PI * FMath::Max(WheelRadius, 1.0f);
-		const float TargetFreeRollingOmega = (VLong / WheelCircumferenceForSync) * 2.0f * PI;
 		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, FreeRollingAngularSync);
+	}
+	else if (FMath::Abs(DriveForce) > 1.0f && FMath::Abs(VLong) > 15.0f)
+	{
+		// Под нагрузкой удерживаем угловую скорость ближе к реальной скорости качения, чтобы не было избыточного раскручивания.
+		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, 6.0f);
 	}
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold && bNoDriveOrBrakeInput)

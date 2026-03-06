@@ -114,14 +114,25 @@ void UEngineComponent::Simulate(float DeltaTime, const TArray<UWheelComponent*>&
 				AppliedWheelTorque *= TCSFactor;
 				GripScale = FMath::Lerp(1.0f, LowGripFrictionScale, SlipAlpha);
 			}
+
+			if (FMath::Abs(ThrottleInput) > 0.1f && FMath::Abs(Wheel->SlipRatioLong) < 0.03f)
+			{
+				AppliedWheelTorque *= 1.2f;
+			}
 		}
 
 		const float WheelRadiusMeters = FMath::Max(Wheel->WheelRadius * 0.01f, 0.05f);
 		const float DriveForce = (AppliedWheelTorque * GripScale) / WheelRadiusMeters;
 		float TotalBrake = BrakeInput * BrakeTorque;
-		if (HandbrakeInput > 0.0f && !IsWheelDriven(Wheel, Idx, Wheels.Num()))
+		const bool bRearWheel = Idx >= (Wheels.Num() / 2);
+		if (HandbrakeInput > 0.0f && bRearWheel)
 		{
 			TotalBrake += HandbrakeInput * HandbrakeTorque;
+		}
+
+		if (FMath::Abs(ThrottleInput) > 0.1f && BrakeInput < 0.1f && HandbrakeInput < 0.05f)
+		{
+			TotalBrake = 0.0f;
 		}
 
 		OutDriveForce.Add(Wheel, DriveForce);

@@ -66,7 +66,7 @@ public:
 	float HandbrakeTorque = 8000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drive")
-	EDriveType DriveType = EDriveType::RWD;
+	EDriveType DriveType = EDriveType::AWD;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traction")
 	float SlipThreshold = 0.2f;
