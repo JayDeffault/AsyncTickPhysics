@@ -347,6 +347,14 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
 	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce * LongitudinalFade;
 
+	if (bNoDriveOrBrakeInput)
+	{
+		// Без входа от водителя не используем продольную slip-тягу: только сопротивление/демпфирование.
+		TireLongFromSlip = 0.0f;
+		// И отключаем нелинейную боковую "тягу" от кэшированного slip, оставляя только демпфирование боковой скорости.
+		TargetFLatScalar = 0.0f;
+	}
+
 	if (bUseRestStabilization && AbsLongSpeed < RestSpeedThreshold && bNoDriveOrBrakeInput)
 	{
 		// На малой скорости без входа не даем продольной "пружине" шины раскачивать кузов назад/вперед.
@@ -376,6 +384,20 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float MaxDeltaLat = LateralForceRateLimit * DeltaTime;
 	const float RateLimitedLat = CachedLateralForceScalar + FMath::Clamp(TargetFLatScalar - CachedLateralForceScalar, -MaxDeltaLat, MaxDeltaLat);
 	float FLatScalar = FMath::FInterpTo(CachedLateralForceScalar, RateLimitedLat, DeltaTime, LateralForceSmoothing);
+
+	if (bNoDriveOrBrakeInput)
+	{
+		// Не допускаем смену знака сил демпфирования: сила должна только гасить скорость, а не разгонять в обратную сторону.
+		if (FMath::Abs(VLat) < 1.0f || FMath::Sign(FLatScalar) == FMath::Sign(VLat))
+		{
+			FLatScalar = 0.0f;
+		}
+		if (FMath::Abs(VLong) < 1.0f || FMath::Sign(FLongScalar) == FMath::Sign(VLong))
+		{
+			FLongScalar = 0.0f;
+		}
+	}
+
 	CachedLateralForceScalar = FLatScalar;
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(WheelAngularVelocity) < RestAngularSpeedThreshold && bNoDriveOrBrakeInput)
