@@ -301,7 +301,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	Forces.SuspensionForce = WheelUp * CachedNormalLoad;
 
-	const FVector TireUp = ContactNormal.GetSafeNormal(WheelUp);
+	const FVector TireUp = ContactNormal.IsNearlyZero() ? WheelUp : ContactNormal.GetSafeNormal();
 	const FQuat SteerRot = FQuat(TireUp, FMath::DegreesToRadians(SteeringAngleDeg));
 	FVector WheelForward = SteerRot.RotateVector(WheelWorldTransform.GetUnitAxis(EAxis::X));
 	WheelForward = FVector::VectorPlaneProject(WheelForward, TireUp).GetSafeNormal();
