@@ -104,6 +104,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 
 	const FTransform BodyWorldTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
 
+	int32 GroundedWheels = 0;
 	for (UWheelComponent* Wheel : Wheels)
 	{
 		if (!Wheel)
@@ -120,7 +121,20 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 		const FWheelForces WheelForces = Wheel->SimulateWheel(DeltaTime, BodyMesh, DriveForce, BrakeForce, SteerAngle, WheelWorldTransform);
 		if (Wheel->bIsGrounded)
 		{
+			++GroundedWheels;
 			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, Wheel->ContactPoint, WheelForces.TotalForce());
+		}
+	}
+
+	if (FMath::Abs(ThrottleInput) > 0.1f && BrakeInput < 0.1f && HandbrakeInput < 0.1f && GroundedWheels > 0)
+	{
+		const FVector BodyForward = BodyWorldTransform.GetUnitAxis(EAxis::X);
+		const float ForwardSpeed = FVector::DotProduct(UAsyncTickFunctions::ATP_GetLinearVelocity(BodyMesh), BodyForward);
+		if (FMath::Abs(ForwardSpeed) < LowSpeedLaunchAssistMaxSpeed)
+		{
+			const float LaunchScale = 1.0f - FMath::Clamp(FMath::Abs(ForwardSpeed) / LowSpeedLaunchAssistMaxSpeed, 0.0f, 1.0f);
+			const FVector AssistForce = BodyForward * (ThrottleInput * LowSpeedLaunchAssistForce * LaunchScale);
+			UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyWorldTransform.GetLocation(), AssistForce);
 		}
 	}
 
