@@ -121,6 +121,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
 	float RestLateralGripMultiplier = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
+	float RollingResistanceCoeff = 90.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
+	float SideSlipDampingCoeff = 110.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
+	float FreeRollingAngularSync = 8.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	bool bIsDrivenWheel = true;
 
