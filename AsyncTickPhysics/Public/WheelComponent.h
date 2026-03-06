@@ -46,7 +46,7 @@ public:
 	UStaticMeshComponent* VisualWheelMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
-	FVector VisualWheelRotationAxis = FVector(1.0f, 0.0f, 0.0f);
+	FVector VisualWheelRotationAxis = FVector(0.0f, 1.0f, 0.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Setup")
 	float WheelRadius = 34.0f;
