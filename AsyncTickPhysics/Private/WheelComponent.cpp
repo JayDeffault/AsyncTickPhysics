@@ -345,11 +345,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float NormSA = FMath::Clamp(CachedSlipAngle / PeakSlipAngle, -3.0f, 3.0f);
 	const float NormSR = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
 
-	float FLatScalar = -FMath::TanH(NormSA * CorneringStiffness) * MaxTireForce * LateralFrictionScale * Fade;
+	float FLatScalar = -std::tanh(NormSA * CorneringStiffness) * MaxTireForce * LateralFrictionScale * Fade;
 	const float VelLatDamping = -VLat * LateralVelocityDamping * FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 35.0f), FVector2D(1.0f, 0.5f), FMath::Abs(SteeringAngleDeg));
 	FLatScalar += FMath::Clamp(VelLatDamping, -MaxTireForce * MaxLateralVelocityForceRatio, MaxTireForce * MaxLateralVelocityForceRatio);
 
-	const float FLongSlip = -FMath::TanH(NormSR * LongitudinalStiffness) * MaxTireForce * LongitudinalFrictionScale * Fade;
+	const float FLongSlip = -std::tanh(NormSR * LongitudinalStiffness) * MaxTireForce * LongitudinalFrictionScale * Fade;
 	float FLongScalar = DriveForce - BrakeForce + FLongSlip;
 
 	// Passive resistances
