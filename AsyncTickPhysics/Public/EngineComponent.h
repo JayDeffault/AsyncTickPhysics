@@ -33,16 +33,28 @@ public:
 	float MaxRPM = 7200.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Engine")
-	float EngineInertia = 0.2f;
+	float EngineInertia = 6.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Engine")
 	FRuntimeFloatCurve TorqueCurve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Engine")
+	float EngineBrakingTorque = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Engine")
+	float ThrottleRiseRate = 4.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Engine")
+	float ThrottleFallRate = 6.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
 	int32 NumGears = 6;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
 	TArray<float> GearRatios;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
+	float ReverseGearRatio = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
 	float FinalDriveRatio = 3.9f;
@@ -59,6 +71,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
 	float ShiftDownRPM = 1800.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Transmission")
+	float ShiftCooldown = 0.2f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Braking")
 	float BrakeTorque = 4500.0f;
 
@@ -66,7 +81,13 @@ public:
 	float HandbrakeTorque = 8000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drive")
-	EDriveType DriveType = EDriveType::AWD;
+	EDriveType DriveType = EDriveType::RWD;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drive")
+	bool bUseAutoReverse = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drive")
+	float AutoReverseSpeedThreshold = 120.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Traction")
 	float SlipThreshold = 0.2f;
@@ -92,6 +113,8 @@ private:
 	float ThrottleInput = 0.0f;
 	float BrakeInput = 0.0f;
 	float HandbrakeInput = 0.0f;
+	float SmoothedThrottle = 0.0f;
+	float ShiftTimer = 0.0f;
 
 	void UpdateAutomaticGear();
 	bool IsWheelDriven(const UWheelComponent* Wheel, int32 WheelIndex, int32 WheelCount) const;

@@ -85,6 +85,9 @@ public:
 	float LateralForceSmoothing = 12.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
+	float LongitudinalFrictionScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
 	float LateralForceRateLimit = 120000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|TireModel")
@@ -156,6 +159,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
 	float HandbrakeWheelStopInterp = 18.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
+	float HandbrakeLateralGripMultiplier = 0.45f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Visual")
 	float VisualGroundSpinInterp = 14.0f;
 
@@ -185,6 +191,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	float SlipAngleLat = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
+	float LinearSpeedAlongWheelForward = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	FVector ContactPoint = FVector::ZeroVector;

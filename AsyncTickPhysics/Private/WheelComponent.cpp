@@ -311,6 +311,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	float VLat = FVector::DotProduct(PointVel, WheelRight);
 	float VLong = FVector::DotProduct(PointVel, WheelForward);
+	LinearSpeedAlongWheelForward = VLong;
 	const bool bNoDriveOrBrakeInput = FMath::Abs(DriveForce) < 5.0f && FMath::Abs(BrakeForce) < 5.0f;
 
 	if (bUseRestStabilization && FMath::Abs(VLat) < RestSpeedThreshold && FMath::Abs(VLong) < RestSpeedThreshold)
@@ -353,25 +354,9 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	const float PeakSlipRatio = FMath::Max(0.02f, SlipRatioPeak);
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
-	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce * LongitudinalFade;
+	float TireLongFromSlip = std::tanh(NormSlipRatio * LongitudinalStiffness) * MaxTireForce * LongitudinalFade * LongitudinalFrictionScale;
 
-	if (bNoDriveOrBrakeInput)
-	{
-		// Без входа от водителя не используем продольную slip-тягу: только сопротивление/демпфирование.
-		// Порог повышен, чтобы после полной остановки машина могла снова тронуться по throttle.
-		TireLongFromSlip = 0.0f;
-		// И отключаем нелинейную боковую "тягу" от кэшированного slip, оставляя только демпфирование боковой скорости.
-		TargetFLatScalar = 0.0f;
-	}
-
-	if (bUseRestStabilization && AbsLongSpeed < RestSpeedThreshold && bNoDriveOrBrakeInput)
-	{
-		// На малой скорости без входа не даем продольной "пружине" шины раскачивать кузов назад/вперед.
-		TireLongFromSlip = 0.0f;
-		CachedSlipRatio = FMath::FInterpTo(CachedSlipRatio, 0.0f, DeltaTime, SlipRelaxationSpeed);
-	}
-
-	float FLongScalar = (DriveForce - BrakeForce) + TireLongFromSlip;
+	float FLongScalar = (DriveForce - BrakeForce) - TireLongFromSlip;
 
 	if (BrakeForce > 1.0f)
 	{
@@ -379,6 +364,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float ExtraLongDrag = -VLong * RestVelocityDamping * HandbrakeLongitudinalDragMultiplier * HandbrakeAlpha;
 		const float MaxExtraDrag = MaxTireForce * FMath::Lerp(0.6f, 1.2f, HandbrakeAlpha);
 		FLongScalar += FMath::Clamp(ExtraLongDrag, -MaxExtraDrag, MaxExtraDrag);
+		TargetFLatScalar *= FMath::Lerp(1.0f, HandbrakeLateralGripMultiplier, HandbrakeAlpha);
 
 		if (FMath::Abs(VLong) < RestSpeedThreshold * 2.0f && FMath::Abs(DriveForce) < 1.0f)
 		{
@@ -386,18 +372,17 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		}
 	}
 
-	// Пассивное сопротивление качению/боковому скольжению, чтобы кузов не ехал и не вращался как по льду.
 	const float RollingResistanceForce = -VLong * RollingResistanceCoeff;
 	const float SideSlipDampingForce = -VLat * SideSlipDampingCoeff;
-	FLongScalar += FMath::Clamp(RollingResistanceForce, -MaxTireForce * 0.75f, MaxTireForce * 0.75f);
-	TargetFLatScalar += FMath::Clamp(SideSlipDampingForce, -MaxTireForce * 0.75f, MaxTireForce * 0.75f);
+	FLongScalar += FMath::Clamp(RollingResistanceForce, -MaxTireForce * 0.55f, MaxTireForce * 0.55f);
+	TargetFLatScalar += FMath::Clamp(SideSlipDampingForce, -MaxTireForce * 0.55f, MaxTireForce * 0.55f);
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold)
 	{
 		TargetFLatScalar *= RestLateralGripMultiplier;
 		if (bNoDriveOrBrakeInput)
 		{
-			TargetFLatScalar += -VLat * RestLateralDamping;
+			TargetFLatScalar += FMath::Clamp(-VLat * RestLateralDamping, -MaxTireForce * 0.4f, MaxTireForce * 0.4f);
 		}
 	}
 
@@ -407,29 +392,16 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float RateLimitedLat = CachedLateralForceScalar + FMath::Clamp(TargetFLatScalar - CachedLateralForceScalar, -MaxDeltaLat, MaxDeltaLat);
 	float FLatScalar = FMath::FInterpTo(CachedLateralForceScalar, RateLimitedLat, DeltaTime, LateralForceSmoothing);
 
-	if (bNoDriveOrBrakeInput)
+	if (bNoDriveOrBrakeInput && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold)
 	{
-		// Не допускаем смену знака сил демпфирования: сила должна только гасить скорость, а не разгонять в обратную сторону.
-		if (FMath::Abs(VLat) < 1.0f || FMath::Sign(FLatScalar) == FMath::Sign(VLat))
-		{
-			FLatScalar = 0.0f;
-		}
-		if (FMath::Abs(VLong) < 1.0f || FMath::Sign(FLongScalar) == FMath::Sign(VLong))
-		{
-			FLongScalar = 0.0f;
-		}
-
-		if (FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold)
-		{
-			CachedLateralForceScalar = FMath::FInterpTo(CachedLateralForceScalar, 0.0f, DeltaTime, LateralForceSmoothing * 2.0f);
-		}
+		CachedLateralForceScalar = FMath::FInterpTo(CachedLateralForceScalar, 0.0f, DeltaTime, LateralForceSmoothing * 2.0f);
 	}
 
 	CachedLateralForceScalar = FLatScalar;
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(WheelAngularVelocity) < RestAngularSpeedThreshold && bNoDriveOrBrakeInput)
 	{
-		FLongScalar += -VLong * RestVelocityDamping;
+		FLongScalar += FMath::Clamp(-VLong * RestVelocityDamping, -MaxTireForce * 0.4f, MaxTireForce * 0.4f);
 	}
 
 	const float FrictionCircle = MaxTireForce;
@@ -444,7 +416,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float SpeedSq = VLong * VLong + VLat * VLat;
 		const float LockSpeedSq = StaticLockSpeedThreshold * StaticLockSpeedThreshold;
 		const bool bNearStatic = SpeedSq < LockSpeedSq;
-		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 5.0f) && (FMath::Abs(BrakeForce) < 5.0f) && (FMath::Abs(SteeringAngleDeg) < 1.5f) && (FMath::Abs(WheelAngularVelocity) < 5.0f);
+		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 2.0f) && (FMath::Abs(BrakeForce) < 2.0f) && (FMath::Abs(SteeringAngleDeg) < 0.8f) && (FMath::Abs(WheelAngularVelocity) < 2.5f);
 
 		if (bNearStatic && bNoInputForLock)
 		{
@@ -488,8 +460,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	}
 	else if (FMath::Abs(DriveForce) > 1.0f && FMath::Abs(VLong) > 15.0f)
 	{
-		// Под нагрузкой удерживаем угловую скорость ближе к реальной скорости качения, чтобы не было избыточного раскручивания.
-		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, 6.0f);
+		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, 4.0f);
 	}
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold && bNoDriveOrBrakeInput)
