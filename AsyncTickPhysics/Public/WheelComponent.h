@@ -88,6 +88,12 @@ public:
 	float LongitudinalFrictionScale = 1.2f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
+	float LateralVelocityDamping = 110.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
+	float MaxLateralVelocityForceRatio = 0.45f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
 	float LateralForceRateLimit = 120000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|TireModel")

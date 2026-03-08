@@ -351,8 +351,10 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float PeakSlipAngle = FMath::DegreesToRadians(FMath::Max(0.5f, SlipAnglePeakDeg));
 	const float NormSlipAngle = FMath::Clamp(CachedSlipAngle / PeakSlipAngle, -3.0f, 3.0f);
 	float TargetFLatScalar = -std::tanh(NormSlipAngle * CorneringStiffness) * MaxTireForce * LateralFrictionScale * LateralFade;
-	const float LateralVelocityStiffness = (220.0f + CachedNormalLoad * 0.03f);
-	TargetFLatScalar += -VLat * LateralVelocityStiffness;
+	const float SteerDampScale = FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 25.0f), FVector2D(1.0f, 0.55f), FMath::Abs(SteeringAngleDeg));
+	const float VelLatDampingForce = -VLat * LateralVelocityDamping * SteerDampScale;
+	const float MaxVelLatForce = MaxTireForce * FMath::Clamp(MaxLateralVelocityForceRatio, 0.0f, 1.0f);
+	TargetFLatScalar += FMath::Clamp(VelLatDampingForce, -MaxVelLatForce, MaxVelLatForce);
 
 	const float PeakSlipRatio = FMath::Max(0.02f, SlipRatioPeak);
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);

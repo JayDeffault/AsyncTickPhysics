@@ -213,6 +213,11 @@ void ABaseVehicle::ApplyAntiRollBar()
 		TotalAngularDamping += -YawOnlyAngularVelocity * YawDamping;
 		TotalAngularDamping += -AngularVelocity * AngularDamping;
 
+		const float DesiredYawRate = SteeringInput * FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 2500.0f), FVector2D(0.8f, 0.25f), FMath::Abs(VLong));
+		const float YawRateError = DesiredYawRate - AngularVelocity.Z;
+		const float YawControlTorque = FMath::Clamp(YawRateError * YawControlGain * StabilityBlend, -MaxYawControlTorque, MaxYawControlTorque);
+		TotalAngularDamping += FVector(0.0f, 0.0f, YawControlTorque);
+
 		if (bEnableStandstillLock)
 		{
 			const bool bNoDriverInput = FMath::Abs(ThrottleInput) < 0.05f && FMath::Abs(SteeringInput) < 0.05f && BrakeInput < 0.05f;

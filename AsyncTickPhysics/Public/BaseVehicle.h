@@ -70,7 +70,7 @@ public:
 	bool bInvertSteeringInput = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
-	float LowSpeedLaunchAssistForce = 90000.0f;
+	float LowSpeedLaunchAssistForce = 70000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
 	float LowSpeedLaunchAssistMaxSpeed = 600.0f;
@@ -120,6 +120,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
 	float SteeringStabilityReduction = 0.8f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float YawControlGain = 180.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float MaxYawControlTorque = 220000.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Debug")
 	bool bDebugVehicle = true;
