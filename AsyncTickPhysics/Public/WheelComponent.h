@@ -70,13 +70,16 @@ public:
 	float TireFriction = 1.2f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
-	float LateralFrictionScale = 0.35f;
+	float LateralFrictionScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
-	float LowSpeedLateralFadeStart = 200.0f;
+	float LowSpeedLateralFadeStart = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
-	float LowSpeedLateralFadeEnd = 800.0f;
+	float LowSpeedLateralFadeEnd = 500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
+	float MinLowSpeedForceFade = 0.3f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Tire")
 	float LateralForceSmoothing = 12.0f;

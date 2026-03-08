@@ -333,13 +333,14 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	CachedSlipRatio = FMath::FInterpTo(CachedSlipRatio, SlipRatioLong, DeltaTime, SlipRelaxationSpeed);
 
 	const float AbsLongSpeed = FMath::Abs(VLong);
+	const float ForceFadeFloor = FMath::Clamp(MinLowSpeedForceFade, 0.0f, 1.0f);
 	const float LateralFade = FMath::GetMappedRangeValueClamped(
 		FVector2D(LowSpeedLateralFadeStart, LowSpeedLateralFadeEnd),
-		FVector2D(0.0f, 1.0f),
+		FVector2D(ForceFadeFloor, 1.0f),
 		AbsLongSpeed);
 	const float LongitudinalFade = FMath::GetMappedRangeValueClamped(
 		FVector2D(LowSpeedLateralFadeStart, LowSpeedLateralFadeEnd),
-		FVector2D(0.0f, 1.0f),
+		FVector2D(ForceFadeFloor, 1.0f),
 		AbsLongSpeed);
 
 	const float LoadScale = FMath::Clamp(1.0f - LoadSensitivity + LoadSensitivity * FMath::Sqrt(FMath::Max(CachedNormalLoad, 0.0f) / 4000.0f), 0.6f, 1.4f);
