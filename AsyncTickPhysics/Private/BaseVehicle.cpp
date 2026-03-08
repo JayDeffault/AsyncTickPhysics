@@ -114,6 +114,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 
 		const FTransform WheelWorldTransform = Wheel->GetRelativeTransform() * BodyWorldTransform;
 		Wheel->bDebugVehicle = bDebugVehicle;
+		Wheel->bVehicleDriveIntent = FMath::Abs(ThrottleInput) > 0.05f;
 		const float DriveForce = DriveForces.FindRef(Wheel);
 		const float BrakeForce = BrakeForces.FindRef(Wheel);
 		const float SteerAngle = Wheel->bIsSteerWheel ? CurrentSteerAngle : 0.0f;
@@ -126,7 +127,7 @@ void ABaseVehicle::SimulateVehicle(float DeltaTime)
 		}
 	}
 
-	if (FMath::Abs(ThrottleInput) > 0.1f && BrakeInput < 0.1f && HandbrakeInput < 0.1f && GroundedWheels > 0)
+	if (bUseLaunchAssist && FMath::Abs(ThrottleInput) > 0.1f && BrakeInput < 0.1f && HandbrakeInput < 0.1f && GroundedWheels > 0)
 	{
 		const FVector BodyForward = BodyWorldTransform.GetUnitAxis(EAxis::X);
 		const float ForwardSpeed = FVector::DotProduct(UAsyncTickFunctions::ATP_GetLinearVelocity(BodyMesh), BodyForward);

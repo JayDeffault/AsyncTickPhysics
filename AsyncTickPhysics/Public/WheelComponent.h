@@ -200,6 +200,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	bool bIsGrounded = false;
 
+	UPROPERTY(Transient, BlueprintReadWrite, Category = "Wheel|State")
+	bool bVehicleDriveIntent = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|State")
 	float CompressionRatio = 0.0f;
 

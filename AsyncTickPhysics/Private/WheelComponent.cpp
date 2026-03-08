@@ -352,7 +352,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float FLongSlip = -std::tanh(NormSR * LongitudinalStiffness) * MaxTireForce * LongitudinalFrictionScale * Fade;
 	float FLongScalar = DriveForce - BrakeForce + FLongSlip;
 
-	const bool bNoInputForHold = (FMath::Abs(DriveForce) + FMath::Abs(BrakeForce)) < StationaryHoldInputThreshold;
+	const bool bNoInputForHold = (FMath::Abs(DriveForce) + FMath::Abs(BrakeForce)) < StationaryHoldInputThreshold && !bVehicleDriveIntent;
 	const bool bLowSteerForHold = FMath::Abs(SteeringAngleDeg) < StationaryHoldSteeringThresholdDeg;
 	const bool bLowSpeedForHold = FMath::Abs(VLong) < StationaryHoldSpeedThreshold && FMath::Abs(VLat) < StationaryHoldSpeedThreshold;
 	const bool bStationaryHold = bEnableStationaryHold && bNoInputForHold && bLowSteerForHold && bLowSpeedForHold;
@@ -390,6 +390,12 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float HBAlpha = FMath::Clamp(BrakeForce / 8000.0f, 0.0f, 1.0f);
 		FLongScalar += FMath::Clamp(-VLong * RestVelocityDamping * HandbrakeLongitudinalDragMultiplier * HBAlpha, -MaxTireForce, MaxTireForce);
 		FLatScalar *= FMath::Lerp(1.0f, HandbrakeLateralGripMultiplier, HBAlpha);
+	}
+
+	const bool bNoDriveOrBrakeInput = (FMath::Abs(DriveForce) < 2.0f && FMath::Abs(BrakeForce) < 2.0f);
+	if (bNoDriveOrBrakeInput && !bStationaryHold)
+	{
+		FLongScalar = FMath::Clamp(FLongScalar, -MaxTireForce * 0.2f, MaxTireForce * 0.2f);
 	}
 
 	if (!bStationaryHold && bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold && FMath::Abs(DriveForce) < 2.0f && FMath::Abs(BrakeForce) < 2.0f)
@@ -432,7 +438,6 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	WheelAngularVelocity += WheelAngularAccel * DeltaTime;
 
 	const float TargetOmega = VLong / RadiusM;
-	const bool bNoDriveOrBrakeInput = (FMath::Abs(DriveForce) < 2.0f && FMath::Abs(BrakeForce) < 2.0f);
 	const float SyncRate = bStationaryHold ? 12.0f : (bNoDriveOrBrakeInput ? FreeRollingAngularSync : 5.0f);
 	WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetOmega, DeltaTime, SyncRate);
 
