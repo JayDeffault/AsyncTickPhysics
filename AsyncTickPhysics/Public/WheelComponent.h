@@ -149,7 +149,7 @@ public:
 	float StationaryHoldSpeedThreshold = 12.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability", meta=(EditCondition="bEnableStationaryHold"))
-	float StationaryHoldInputThreshold = 8.0f;
+	float StationaryHoldInputThreshold = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability", meta=(EditCondition="bEnableStationaryHold"))
 	float StationaryHoldSteeringThresholdDeg = 0.35f;

@@ -352,7 +352,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float FLongSlip = -std::tanh(NormSR * LongitudinalStiffness) * MaxTireForce * LongitudinalFrictionScale * Fade;
 	float FLongScalar = DriveForce - BrakeForce + FLongSlip;
 
-	const bool bNoInputForHold = FMath::Abs(DriveForce) < StationaryHoldInputThreshold && FMath::Abs(BrakeForce) < StationaryHoldInputThreshold;
+	const bool bNoInputForHold = (FMath::Abs(DriveForce) + FMath::Abs(BrakeForce)) < StationaryHoldInputThreshold;
 	const bool bLowSteerForHold = FMath::Abs(SteeringAngleDeg) < StationaryHoldSteeringThresholdDeg;
 	const bool bLowSpeedForHold = FMath::Abs(VLong) < StationaryHoldSpeedThreshold && FMath::Abs(VLat) < StationaryHoldSpeedThreshold;
 	const bool bStationaryHold = bEnableStationaryHold && bNoInputForHold && bLowSteerForHold && bLowSpeedForHold;
@@ -378,9 +378,11 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	}
 	else
 	{
-		// Passive resistances
-		FLongScalar += FMath::Clamp(-VLong * RollingResistanceCoeff, -MaxTireForce * 0.5f, MaxTireForce * 0.5f);
-		FLatScalar += FMath::Clamp(-VLat * SideSlipDampingCoeff, -MaxTireForce * 0.6f, MaxTireForce * 0.6f);
+		// Passive resistances (reduced when drive force is actively pushing the car to avoid "wheel lock" feeling).
+		const float DriveIntent = FMath::Clamp(FMath::Abs(DriveForce) / FMath::Max(MaxTireForce * 0.2f, 1.0f), 0.0f, 1.0f);
+		const float ResistScale = FMath::Lerp(1.0f, 0.25f, DriveIntent);
+		FLongScalar += FMath::Clamp(-VLong * RollingResistanceCoeff * ResistScale, -MaxTireForce * 0.5f, MaxTireForce * 0.5f);
+		FLatScalar += FMath::Clamp(-VLat * SideSlipDampingCoeff * ResistScale, -MaxTireForce * 0.6f, MaxTireForce * 0.6f);
 	}
 
 	if (BrakeForce > 1.0f)
