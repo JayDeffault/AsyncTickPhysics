@@ -116,7 +116,7 @@ public:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
-	bool bUseRestStabilization = true;
+	bool bUseRestStabilization = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
 	float RestSpeedThreshold = 15.0f;
@@ -143,7 +143,7 @@ public:
 	float FreeRollingAngularSync = 8.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
-	bool bEnableStationaryHold = true;
+	bool bEnableStationaryHold = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability", meta=(EditCondition="bEnableStationaryHold"))
 	float StationaryHoldSpeedThreshold = 12.0f;
@@ -161,7 +161,7 @@ public:
 	float StationaryHoldAntiSlopeScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability")
-	bool bEnableStaticFrictionLock = true;
+	bool bEnableStaticFrictionLock = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wheel|Stability", meta=(EditCondition="bEnableStaticFrictionLock"))
 	float StaticLockSpeedThreshold = 25.0f;

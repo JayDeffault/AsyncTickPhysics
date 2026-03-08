@@ -172,49 +172,10 @@ void ABaseVehicle::ApplyAntiRollBar()
 	ApplyPair(Wheels[0], Wheels[1]);
 	ApplyPair(Wheels[2], Wheels[3]);
 
+	// Single deterministic global damping torque (no extra helpers to avoid force conflicts).
 	const FVector AngularVelocity = UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh);
-	FVector TotalTorque = -AngularVelocity * BaseAngularDamping;
-
-	if (bUseArcadeStabilityAssist)
-	{
-		const FTransform BodyTransform = UAsyncTickFunctions::ATP_GetTransform(BodyMesh);
-		const FVector BodyForward = BodyTransform.GetUnitAxis(EAxis::X);
-		const FVector BodyRight = BodyTransform.GetUnitAxis(EAxis::Y);
-		const FVector BodyLocation = BodyTransform.GetLocation();
-		const FVector V = UAsyncTickFunctions::ATP_GetLinearVelocity(BodyMesh);
-		const float VLong = FVector::DotProduct(V, BodyForward);
-		const float VLat = FVector::DotProduct(V, BodyRight);
-		const float Speed = V.Size();
-
-		const float SpeedBlend = FMath::GetMappedRangeValueClamped(FVector2D(StabilityAssistMinSpeed, StabilityAssistFullSpeed), FVector2D(0.0f, 1.0f), Speed);
-		const float SteeringDemand = FMath::Clamp(FMath::Abs(SteeringInput), 0.0f, 1.0f);
-		const float SteerRelax = FMath::Lerp(1.0f, FMath::Clamp(1.0f - SteeringStabilityReduction, 0.2f, 1.0f), SteeringDemand);
-		const float Assist = SpeedBlend * SteerRelax;
-
-		const FVector StabilizationForce = (-BodyForward * VLong * ArcadeLongitudinalDamping - BodyRight * VLat * ArcadeLateralDamping) * Assist;
-		UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyLocation, StabilizationForce.GetClampedToMaxSize(220000.0f));
-
-		const float DesiredYawRate = SteeringInput * FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 2600.0f), FVector2D(0.85f, 0.25f), FMath::Abs(VLong));
-		const float YawRateError = DesiredYawRate - AngularVelocity.Z;
-		const float YawControlTorque = FMath::Clamp(YawRateError * YawControlGain * Assist, -MaxYawControlTorque, MaxYawControlTorque);
-		TotalTorque += FVector(0.0f, 0.0f, YawControlTorque);
-
-		TotalTorque += FVector(0.0f, 0.0f, -AngularVelocity.Z * ArcadeYawDamping * Assist);
-		TotalTorque += -AngularVelocity * ArcadeAngularDamping * Assist;
-
-		if (bEnableStandstillLock)
-		{
-			const bool bNoDriverInput = FMath::Abs(ThrottleInput) < 0.05f && FMath::Abs(SteeringInput) < 0.05f && BrakeInput < 0.05f;
-			const bool bParkingMode = bNoDriverInput || (HandbrakeInput > 0.2f && FMath::Abs(ThrottleInput) < 0.1f && FMath::Abs(SteeringInput) < 0.2f);
-			if (bParkingMode && Speed < StandstillLinearSpeedThreshold)
-			{
-				UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyLocation, (-V * StandstillLinearDamping).GetClampedToMaxSize(180000.0f));
-				TotalTorque += (-AngularVelocity * StandstillAngularDamping).GetClampedToMaxSize(220000.0f);
-			}
-		}
-	}
-
-	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, TotalTorque, false);
+	const FVector DampingTorque = -AngularVelocity * BaseAngularDamping;
+	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, DampingTorque, false);
 }
 
 
