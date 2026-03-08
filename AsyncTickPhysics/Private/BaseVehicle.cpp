@@ -303,7 +303,8 @@ void ABaseVehicle::SetHandbrake(float Value)
 
 void ABaseVehicle::SetSteering(float Value)
 {
-	SteeringInput = FMath::Clamp(Value, -1.0f, 1.0f);
+	const float Clamped = FMath::Clamp(Value, -1.0f, 1.0f);
+	SteeringInput = bInvertSteeringInput ? -Clamped : Clamped;
 }
 
 void ABaseVehicle::ApplyCollisionDamage(float ImpactStrength)

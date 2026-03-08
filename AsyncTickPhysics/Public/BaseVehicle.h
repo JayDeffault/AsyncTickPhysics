@@ -66,11 +66,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Steering")
 	float SteerSpeed = 5.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
-	float LowSpeedLaunchAssistForce = 180000.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Steering")
+	bool bInvertSteeringInput = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
-	float LowSpeedLaunchAssistMaxSpeed = 900.0f;
+	float LowSpeedLaunchAssistForce = 90000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
+	float LowSpeedLaunchAssistMaxSpeed = 600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|AntiRoll")
 	float AntiRollBarStiffness = 10000.0f;
