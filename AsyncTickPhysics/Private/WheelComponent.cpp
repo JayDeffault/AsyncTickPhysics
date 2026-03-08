@@ -351,6 +351,8 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	const float PeakSlipAngle = FMath::DegreesToRadians(FMath::Max(0.5f, SlipAnglePeakDeg));
 	const float NormSlipAngle = FMath::Clamp(CachedSlipAngle / PeakSlipAngle, -3.0f, 3.0f);
 	float TargetFLatScalar = -std::tanh(NormSlipAngle * CorneringStiffness) * MaxTireForce * LateralFrictionScale * LateralFade;
+	const float LateralVelocityStiffness = (220.0f + CachedNormalLoad * 0.03f);
+	TargetFLatScalar += -VLat * LateralVelocityStiffness;
 
 	const float PeakSlipRatio = FMath::Max(0.02f, SlipRatioPeak);
 	const float NormSlipRatio = FMath::Clamp(CachedSlipRatio / PeakSlipRatio, -3.0f, 3.0f);
@@ -374,8 +376,8 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 
 	const float RollingResistanceForce = -VLong * RollingResistanceCoeff;
 	const float SideSlipDampingForce = -VLat * SideSlipDampingCoeff;
-	FLongScalar += FMath::Clamp(RollingResistanceForce, -MaxTireForce * 0.55f, MaxTireForce * 0.55f);
-	TargetFLatScalar += FMath::Clamp(SideSlipDampingForce, -MaxTireForce * 0.55f, MaxTireForce * 0.55f);
+	FLongScalar += FMath::Clamp(RollingResistanceForce, -MaxTireForce * 0.7f, MaxTireForce * 0.7f);
+	TargetFLatScalar += FMath::Clamp(SideSlipDampingForce, -MaxTireForce * 0.8f, MaxTireForce * 0.8f);
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold)
 	{
@@ -416,7 +418,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 		const float SpeedSq = VLong * VLong + VLat * VLat;
 		const float LockSpeedSq = StaticLockSpeedThreshold * StaticLockSpeedThreshold;
 		const bool bNearStatic = SpeedSq < LockSpeedSq;
-		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 2.0f) && (FMath::Abs(BrakeForce) < 2.0f) && (FMath::Abs(SteeringAngleDeg) < 0.8f) && (FMath::Abs(WheelAngularVelocity) < 2.5f);
+		const bool bNoInputForLock = (FMath::Abs(DriveForce) < 2.0f) && (FMath::Abs(BrakeForce) < 2.0f) && (FMath::Abs(SteeringAngleDeg) < 0.4f) && (FMath::Abs(WheelAngularVelocity) < 2.5f);
 
 		if (bNearStatic && bNoInputForLock)
 		{
@@ -460,7 +462,7 @@ FWheelForces UWheelComponent::SimulateWheel(float DeltaTime, UPrimitiveComponent
 	}
 	else if (FMath::Abs(DriveForce) > 1.0f && FMath::Abs(VLong) > 15.0f)
 	{
-		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, 4.0f);
+		WheelAngularVelocity = FMath::FInterpTo(WheelAngularVelocity, TargetFreeRollingOmega, DeltaTime, 6.0f);
 	}
 
 	if (bUseRestStabilization && FMath::Abs(VLong) < RestSpeedThreshold && FMath::Abs(VLat) < RestSpeedThreshold && bNoDriveOrBrakeInput)

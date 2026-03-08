@@ -67,7 +67,7 @@ public:
 	float SteerSpeed = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Steering")
-	bool bInvertSteeringInput = true;
+	bool bInvertSteeringInput = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Drive")
 	float LowSpeedLaunchAssistForce = 90000.0f;
