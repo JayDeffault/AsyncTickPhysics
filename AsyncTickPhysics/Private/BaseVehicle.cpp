@@ -177,7 +177,7 @@ void ABaseVehicle::ApplyAntiRollBar()
 	ApplyPair(Wheels[2], Wheels[3]);
 
 	const FVector AngularVelocity = UAsyncTickFunctions::ATP_GetAngularVelocity(BodyMesh);
-	FVector TotalAngularDamping = -AngularVelocity * 15.0f;
+	FVector TotalAngularDamping = -AngularVelocity * BaseAngularDamping;
 
 	if (bUseArcadeStabilityAssist)
 	{
@@ -191,13 +191,16 @@ void ABaseVehicle::ApplyAntiRollBar()
 		const float VLat = FVector::DotProduct(LinearVelocity, BodyRight);
 		const float Speed = LinearVelocity.Size();
 		const float SteeringDemand = FMath::Clamp(FMath::Abs(SteeringInput), 0.0f, 1.0f);
-		const float SteeringRelax = FMath::Lerp(1.0f, 0.35f, SteeringDemand);
-		const float SteeringRelaxYaw = FMath::Lerp(1.0f, 0.2f, SteeringDemand);
+		const float SteeringRelax = FMath::Lerp(1.0f, FMath::Clamp(1.0f - SteeringStabilityReduction, 0.05f, 1.0f), SteeringDemand);
+		const float SteeringRelaxYaw = FMath::Lerp(1.0f, FMath::Clamp(1.0f - SteeringStabilityReduction * 1.2f, 0.05f, 1.0f), SteeringDemand);
 		const float HighSpeedAssist = FMath::GetMappedRangeValueClamped(FVector2D(900.0f, 4500.0f), FVector2D(0.75f, 1.0f), Speed);
 
 		const float HandbrakeGripLock = FMath::Clamp(HandbrakeInput, 0.0f, 1.0f);
-		const float LongDamping = FMath::Lerp(ArcadeLongitudinalDamping, ArcadeLongitudinalDamping * 4.6f, HandbrakeGripLock) * HighSpeedAssist;
-		const float LatDamping = FMath::Lerp(ArcadeLateralDamping, ArcadeLateralDamping * 3.8f, HandbrakeGripLock) * SteeringRelax * HighSpeedAssist;
+		const float StabilitySpeedBlend = FMath::GetMappedRangeValueClamped(FVector2D(StabilityAssistMinSpeed, StabilityAssistFullSpeed), FVector2D(0.0f, 1.0f), Speed);
+		const float StabilityBlend = FMath::Max(StabilitySpeedBlend, HandbrakeGripLock * 0.35f);
+		const float LaunchUnclamp = (FMath::Abs(ThrottleInput) > 0.1f && BrakeInput < 0.1f && HandbrakeInput < 0.1f) ? 0.65f : 1.0f;
+		const float LongDamping = FMath::Lerp(ArcadeLongitudinalDamping, ArcadeLongitudinalDamping * 4.6f, HandbrakeGripLock) * HighSpeedAssist * StabilityBlend * LaunchUnclamp;
+		const float LatDamping = FMath::Lerp(ArcadeLateralDamping, ArcadeLateralDamping * 3.8f, HandbrakeGripLock) * SteeringRelax * HighSpeedAssist * StabilityBlend;
 
 		FVector StabilizationForce = (-BodyForward * VLong * LongDamping) + (-BodyRight * VLat * LatDamping);
 		const float MaxStabilizationForce = FMath::Lerp(280000.0f, 900000.0f, HandbrakeGripLock);
@@ -205,8 +208,8 @@ void ABaseVehicle::ApplyAntiRollBar()
 		UAsyncTickFunctions::ATP_AddForceAtPosition(BodyMesh, BodyLocation, StabilizationForce);
 
 		const FVector YawOnlyAngularVelocity(0.0f, 0.0f, AngularVelocity.Z);
-		const float YawDamping = FMath::Lerp(ArcadeYawDamping, ArcadeYawDamping * 6.0f, HandbrakeGripLock) * SteeringRelaxYaw * HighSpeedAssist;
-		const float AngularDamping = FMath::Lerp(ArcadeAngularDamping, ArcadeAngularDamping * 3.0f, HandbrakeGripLock) * SteeringRelaxYaw;
+		const float YawDamping = FMath::Lerp(ArcadeYawDamping, ArcadeYawDamping * 6.0f, HandbrakeGripLock) * SteeringRelaxYaw * HighSpeedAssist * StabilityBlend;
+		const float AngularDamping = FMath::Lerp(ArcadeAngularDamping, ArcadeAngularDamping * 3.0f, HandbrakeGripLock) * SteeringRelaxYaw * StabilityBlend;
 		TotalAngularDamping += -YawOnlyAngularVelocity * YawDamping;
 		TotalAngularDamping += -AngularVelocity * AngularDamping;
 
@@ -236,7 +239,8 @@ void ABaseVehicle::ApplyAntiRollBar()
 	}
 
 	const float YawSpinAssistScale = FMath::GetMappedRangeValueClamped(FVector2D(0.0f, 0.35f), FVector2D(1.0f, 0.2f), FMath::Abs(SteeringInput));
-	const float YawSpinDamping = -AngularVelocity.Z * FMath::Abs(AngularVelocity.Z) * 4.5f * YawSpinAssistScale;
+	const float YawSpinSpeedBlend = FMath::GetMappedRangeValueClamped(FVector2D(StabilityAssistMinSpeed, StabilityAssistFullSpeed), FVector2D(0.0f, 1.0f), UAsyncTickFunctions::ATP_GetLinearVelocity(BodyMesh).Size());
+	const float YawSpinDamping = -AngularVelocity.Z * FMath::Abs(AngularVelocity.Z) * 4.5f * YawSpinAssistScale * YawSpinSpeedBlend;
 	TotalAngularDamping += FVector(0.0f, 0.0f, YawSpinDamping);
 	UAsyncTickFunctions::ATP_AddTorque(BodyMesh, TotalAngularDamping, false);
 }

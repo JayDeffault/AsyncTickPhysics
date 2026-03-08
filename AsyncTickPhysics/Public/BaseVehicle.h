@@ -106,6 +106,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
 	float StandstillAngularDamping = 5200.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability")
+	float BaseAngularDamping = 6.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float StabilityAssistMinSpeed = 250.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float StabilityAssistFullSpeed = 1400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Stability", meta=(EditCondition="bUseArcadeStabilityAssist"))
+	float SteeringStabilityReduction = 0.8f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Vehicle|Debug")
 	bool bDebugVehicle = true;
 
